@@ -1,0 +1,64 @@
+// Prisma schema for the hotel marketplace.
+// Uses SQLite locally; switch `provider` to "postgresql" + a managed URL for production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String // "BUYER" | "SELLER"
+  hotels    Hotel[]
+  bookings  Booking[]
+  createdAt DateTime @default(now())
+}
+
+model Hotel {
+  id           String    @id @default(cuid())
+  name         String
+  city         String
+  country      String
+  description  String
+  pricePerNight Int // stored in whole currency units (e.g. INR)
+  currency     String    @default("INR")
+  rating       Float     @default(0)
+  imageUrl     String
+  amenities    String // comma-separated list, kept simple for SQLite
+  roomsTotal   Int       @default(1)
+  published    Boolean   @default(true)
+  owner        User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId      String
+  bookings     Booking[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([city])
+  @@index([ownerId])
+}
+
+model Booking {
+  id        String   @id @default(cuid())
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  hotelId   String
+  guest     User     @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  guestId   String
+  guestName String
+  email     String
+  checkIn   DateTime
+  checkOut  DateTime
+  guests    Int      @default(1)
+  nights    Int
+  total     Int
+  status    String   @default("CONFIRMED") // CONFIRMED | CANCELLED
+  createdAt DateTime @default(now())
+
+  @@index([hotelId])
+  @@index([guestId])
+}
