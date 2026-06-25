@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import { Button } from "@/components/ui/Button";
 import { formatMoney } from "@/lib/validations";
 
@@ -38,14 +39,14 @@ export function HotelForm() {
     setUploadError("");
     setUploading(true);
     update("imageUrl", "");
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setUploadError(data.error ?? "Upload failed");
-    } else {
-      update("imageUrl", data.url);
+    try {
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      update("imageUrl", blob.url);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
     }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
