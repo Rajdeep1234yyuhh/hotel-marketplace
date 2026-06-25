@@ -15,13 +15,7 @@ export const createHotelSchema = z.object({
   description: z.string().trim().min(20, "Add at least a short description").max(2000),
   pricePerNight: z.coerce.number().int().positive("Price must be greater than 0"),
   currency: z.string().trim().default("INR"),
-  imageUrl: z
-    .string()
-    .trim()
-    .refine(
-      (v) => v.startsWith("/uploads/") || /^https?:\/\/.+/.test(v),
-      "Enter a valid image URL or upload a file"
-    ),
+  imageUrl: z.string().trim().url("Enter a valid image URL"),
   amenities: z.string().trim().default(""),
   roomsTotal: z.coerce.number().int().positive().default(1),
 });

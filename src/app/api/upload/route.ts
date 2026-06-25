@@ -1,7 +1,5 @@
+import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
-import { join } from "path";
-import { randomUUID } from "crypto";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -28,12 +26,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "File must be under 5 MB" }, { status: 400 });
   }
 
-  const ext = file.type.split("/")[1].replace("jpeg", "jpg");
-  const filename = `${randomUUID()}.${ext}`;
-  const dest = join(process.cwd(), "public", "uploads", filename);
+  const blob = await put(`hotels/${file.name}`, file, { access: "public" });
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(dest, buffer);
-
-  return NextResponse.json({ url: `/uploads/${filename}` });
+  return NextResponse.json({ url: blob.url });
 }

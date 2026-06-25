@@ -1,13 +1,11 @@
-// Prisma schema for the hotel marketplace.
-// Uses SQLite locally; switch `provider` to "postgresql" + a managed URL for production.
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
