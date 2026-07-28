@@ -31,12 +31,12 @@ export default async function HotelDetailPage({
     <div className="container-page py-8">
       <Link
         href="/browse"
-        className="text-sm text-slate transition hover:text-ink"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate transition hover:text-ink"
       >
         ← Back to stays
       </Link>
 
-      <div className="mt-4 overflow-hidden rounded-card border border-line">
+      <div className="mt-4 overflow-hidden rounded-card border border-line shadow-soft">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={hotel.imageUrl}
@@ -50,31 +50,36 @@ export default async function HotelDetailPage({
           <p className="eyebrow">
             {hotel.city}, {hotel.country}
           </p>
-          <h1 className="mt-2 font-display text-4xl leading-tight tracking-tight text-ink">
+          <h1 className="mt-2 font-display text-4xl font-bold leading-tight tracking-tight text-ink">
             {hotel.name}
           </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate">
             {hotel.rating > 0 && (
-              <span className="font-medium text-ink">★ {hotel.rating.toFixed(1)}</span>
+              <span className="flex items-center gap-1 rounded bg-emerald-600 px-1.5 py-0.5 text-xs font-bold text-white">
+                {hotel.rating.toFixed(1)}
+                <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.368 2.447a1 1 0 00-.363 1.118l1.287 3.957c.3.922-.755 1.688-1.538 1.118l-3.367-2.447a1 1 0 00-1.176 0l-3.367 2.447c-.783.57-1.838-.196-1.538-1.118l1.287-3.957a1 1 0 00-.363-1.118L2.062 9.385c-.783-.57-.38-1.81.588-1.81h4.163a1 1 0 00.95-.69l1.286-3.958z" />
+                </svg>
+              </span>
             )}
             <span>Hosted by {hotel.owner.name}</span>
             <span>{hotel.roomsTotal} rooms</span>
           </div>
 
-          <p className="mt-6 max-w-prose leading-relaxed text-ink/90">
+          <p className="mt-6 max-w-prose leading-relaxed text-ink/80">
             {hotel.description}
           </p>
 
           {amenities.length > 0 && (
             <div className="mt-8">
-              <h2 className="font-display text-xl text-ink">What this place offers</h2>
+              <h2 className="font-display text-xl font-bold text-ink">What this place offers</h2>
               <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {amenities.map((a) => (
                   <li
                     key={a}
                     className="flex items-center gap-3 rounded-lg border border-line bg-white px-4 py-3 text-sm text-ink"
                   >
-                    <span className="h-1.5 w-1.5 rounded-full bg-brass" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                     {a}
                   </li>
                 ))}
@@ -84,7 +89,7 @@ export default async function HotelDetailPage({
 
           {mealPlans.length > 0 && (
             <div className="mt-8">
-              <h2 className="font-display text-xl text-ink">Meal plans</h2>
+              <h2 className="font-display text-xl font-bold text-ink">Meal plans</h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 {mealPlans.map((plan) => (
                   <span
@@ -100,7 +105,7 @@ export default async function HotelDetailPage({
 
           {hotel.roomCategories.length > 0 && (
             <div className="mt-8">
-              <h2 className="font-display text-xl text-ink">Room categories</h2>
+              <h2 className="font-display text-xl font-bold text-ink">Room categories</h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {hotel.roomCategories.map((rc) => {
                   const photos = toList(rc.photos);
@@ -121,10 +126,10 @@ export default async function HotelDetailPage({
                       )}
                       <div className="p-4">
                         <div className="flex items-baseline justify-between gap-2">
-                          <h3 className="font-display text-lg text-ink">{rc.name}</h3>
-                          <span className="whitespace-nowrap text-sm font-medium text-ink">
+                          <h3 className="font-display text-lg font-bold text-ink">{rc.name}</h3>
+                          <span className="whitespace-nowrap text-sm font-bold text-ink">
                             {formatMoney(rc.pricePerNight, hotel.currency)}
-                            <span className="text-xs text-slate"> /night</span>
+                            <span className="text-xs font-normal text-slate"> /night</span>
                           </span>
                         </div>
                         <p className="mt-1 text-xs text-slate">
@@ -156,8 +161,8 @@ export default async function HotelDetailPage({
 
           {hasCoordinates && (
             <div className="mt-8">
-              <h2 className="font-display text-xl text-ink">Location</h2>
-              <div className="mt-4 overflow-hidden rounded-card border border-line">
+              <h2 className="font-display text-xl font-bold text-ink">Location</h2>
+              <div className="mt-4 overflow-hidden rounded-card border border-line shadow-soft">
                 <iframe
                   title={`Map showing ${hotel.name}`}
                   src={`https://www.google.com/maps?q=${hotel.latitude},${hotel.longitude}&z=15&output=embed`}
@@ -178,8 +183,8 @@ export default async function HotelDetailPage({
           )}
 
           {(hotel.contactEmail || hotel.contactPhone) && (
-            <div className="mt-8 rounded-lg border border-line bg-white p-4">
-              <h2 className="font-display text-lg text-ink">Contact the host</h2>
+            <div className="mt-8 rounded-lg border border-line bg-white p-4 shadow-soft">
+              <h2 className="font-display text-lg font-bold text-ink">Contact the host</h2>
               <div className="mt-2 space-y-1 text-sm text-slate">
                 {hotel.contactEmail && (
                   <p>

@@ -60,14 +60,14 @@ export function EnterForm() {
               onClick={() => setRole(r)}
               className={`rounded-xl border p-4 text-left transition ${
                 active
-                  ? "border-ink bg-ink text-paper shadow-soft"
-                  : "border-line bg-paper text-ink hover:border-ink/40"
+                  ? "border-accent bg-accent text-white shadow-soft"
+                  : "border-line bg-paper text-ink hover:border-accent/40"
               }`}
             >
               <span className="block text-sm font-semibold">{roleCopy[r].title}</span>
               <span
                 className={`mt-1 block text-xs leading-snug ${
-                  active ? "text-paper/75" : "text-slate"
+                  active ? "text-white/75" : "text-slate"
                 }`}
               >
                 {roleCopy[r].blurb}

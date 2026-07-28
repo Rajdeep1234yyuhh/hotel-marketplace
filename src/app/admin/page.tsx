@@ -40,7 +40,7 @@ export default async function AdminDashboard() {
     <div className="container-page py-10">
       <div className="border-b border-line pb-8">
         <p className="eyebrow">Super admin</p>
-        <h1 className="mt-2 font-display text-4xl tracking-tight text-ink">
+        <h1 className="mt-2 font-display text-4xl font-bold tracking-tight text-ink">
           Marketplace overview
         </h1>
         <p className="mt-2 text-slate">
@@ -56,7 +56,7 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="mt-10">
-        <h2 className="font-display text-2xl text-ink">Hotels</h2>
+        <h2 className="font-display text-2xl font-bold text-ink">Hotels</h2>
         <div className="mt-4 overflow-hidden rounded-card border border-line bg-white">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-line bg-paper/60 text-xs uppercase tracking-wider text-slate">
@@ -131,7 +131,7 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="mt-10">
-        <h2 className="font-display text-2xl text-ink">Users</h2>
+        <h2 className="font-display text-2xl font-bold text-ink">Users</h2>
         <div className="mt-4 overflow-hidden rounded-card border border-line bg-white">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-line bg-paper/60 text-xs uppercase tracking-wider text-slate">
@@ -163,9 +163,9 @@ export default async function AdminDashboard() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-card border border-line bg-white p-4">
-      <p className="text-xs uppercase tracking-wider text-slate">{label}</p>
-      <p className="mt-1 font-display text-3xl text-ink">{value}</p>
+    <div className="rounded-card border border-line bg-white p-4 shadow-soft">
+      <p className="text-xs font-medium uppercase tracking-wider text-slate">{label}</p>
+      <p className="mt-1 font-display text-3xl font-bold text-ink">{value}</p>
     </div>
   );
 }

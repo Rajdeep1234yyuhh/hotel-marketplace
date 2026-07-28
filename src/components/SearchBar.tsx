@@ -25,7 +25,7 @@ export function SearchBar() {
       />
       <button
         type="submit"
-        className="shrink-0 rounded-lg bg-ink px-4 text-sm font-medium text-paper transition hover:bg-ink/90"
+        className="shrink-0 rounded-lg bg-accent px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-deep"
       >
         Search
       </button>

@@ -88,11 +88,11 @@ export function BookingForm({
 
   if (confirmed) {
     return (
-      <div className="rounded-card border border-line bg-white p-6 shadow-soft">
-        <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent/10 text-accent-deep">
+      <div className="rounded-card border border-line bg-white p-6 shadow-lift">
+        <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white">
           ✓
         </div>
-        <h3 className="font-display text-xl text-ink">Booking confirmed</h3>
+        <h3 className="font-display text-xl font-bold text-ink">Booking confirmed</h3>
         <p className="mt-1 text-sm text-slate">
           {confirmed.nights} {confirmed.nights === 1 ? "night" : "nights"} ·{" "}
           {formatMoney(confirmed.total, currency)} total. A confirmation has been
@@ -113,9 +113,9 @@ export function BookingForm({
   }
 
   return (
-    <div className="rounded-card border border-line bg-white p-6 shadow-soft">
+    <div className="rounded-card border border-line bg-white p-6 shadow-lift">
       <div className="flex items-baseline gap-1">
-        <span className="font-display text-2xl text-ink">
+        <span className="font-display text-2xl font-bold text-ink">
           {formatMoney(effectiveRate, currency)}
         </span>
         <span className="text-sm text-slate">/ night</span>
@@ -251,7 +251,7 @@ export function BookingForm({
             </span>
             <span>{formatMoney(total, currency)}</span>
           </div>
-          <div className="flex justify-between font-medium text-ink">
+          <div className="flex justify-between text-base font-bold text-ink">
             <span>Total</span>
             <span>{formatMoney(total, currency)}</span>
           </div>

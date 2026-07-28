@@ -644,7 +644,7 @@ export function HotelForm() {
             <p className="text-xs uppercase tracking-wider text-slate">
               {form.city || "City"}, {form.country || "Country"}
             </p>
-            <h3 className="mt-1 font-display text-lg text-ink">
+            <h3 className="mt-1 font-display text-lg font-semibold text-ink">
               {form.name || "Your property name"}
             </h3>
             <div className="mt-3 flex items-baseline gap-1">

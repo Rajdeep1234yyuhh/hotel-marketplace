@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <div className="container-page flex min-h-[60vh] flex-col items-center justify-center text-center">
       <p className="eyebrow">404</p>
-      <h1 className="mt-3 font-display text-4xl text-ink">We couldn&apos;t find that page</h1>
+      <h1 className="mt-3 font-display text-4xl font-bold text-ink">We couldn&apos;t find that page</h1>
       <p className="mt-2 text-slate">The stay you&apos;re looking for may have been removed.</p>
       <Link
         href="/browse"

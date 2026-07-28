@@ -22,7 +22,7 @@ export default async function BrowsePage({
       <div className="flex flex-col gap-4 border-b border-line pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="eyebrow">Find a stay</p>
-          <h1 className="mt-2 font-display text-4xl tracking-tight text-ink">
+          <h1 className="mt-2 font-display text-4xl font-bold tracking-tight text-ink">
             {q ? `Stays matching “${q}”` : "Places to stay"}
           </h1>
           <p className="mt-2 text-slate">
@@ -36,7 +36,7 @@ export default async function BrowsePage({
 
       {hotels.length === 0 ? (
         <div className="mt-16 text-center">
-          <p className="font-display text-2xl text-ink">No stays here yet</p>
+          <p className="font-display text-2xl font-bold text-ink">No stays here yet</p>
           <p className="mt-2 text-slate">
             {q
               ? "Try a different city or clear your search."
@@ -45,7 +45,7 @@ export default async function BrowsePage({
           {session?.role === "SELLER" ? (
             <Link
               href="/seller/new"
-              className="mt-6 inline-block rounded-lg bg-ink px-5 py-2.5 text-sm font-medium text-paper"
+              className="mt-6 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-deep"
             >
               List a property
             </Link>
@@ -53,7 +53,7 @@ export default async function BrowsePage({
             q && (
               <Link
                 href="/browse"
-                className="mt-6 inline-block rounded-lg border border-line px-5 py-2.5 text-sm font-medium text-ink"
+                className="mt-6 inline-block rounded-lg border border-line px-5 py-2.5 text-sm font-medium text-ink transition hover:border-ink/40"
               >
                 Clear search
               </Link>

@@ -15,7 +15,7 @@ export default function NewHotelPage() {
       </Link>
       <div className="mt-4 border-b border-line pb-8">
         <p className="eyebrow">New listing</p>
-        <h1 className="mt-2 font-display text-4xl tracking-tight text-ink">
+        <h1 className="mt-2 font-display text-4xl font-bold tracking-tight text-ink">
           Add a property
         </h1>
         <p className="mt-2 max-w-prose text-slate">
