@@ -6,6 +6,5 @@ build
 .env*.local
 *.db
 *.db-journal
-prisma/dev.db
 .DS_Store
 /data/db.json
