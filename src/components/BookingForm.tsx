@@ -89,7 +89,7 @@ export function BookingForm({
   if (confirmed) {
     return (
       <div className="rounded-card border border-line bg-white p-6 shadow-soft">
-        <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-brass/20 text-brass-deep">
+        <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent/10 text-accent-deep">
           ✓
         </div>
         <h3 className="font-display text-xl text-ink">Booking confirmed</h3>

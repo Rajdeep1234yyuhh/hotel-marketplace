@@ -379,7 +379,7 @@ export function HotelForm() {
             <button
               type="button"
               onClick={addRoomCategory}
-              className="text-xs font-medium text-brass-deep hover:underline"
+              className="text-xs font-medium text-accent-deep hover:underline"
             >
               + Add category
             </button>

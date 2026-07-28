@@ -50,7 +50,7 @@ export default async function SellerDashboard() {
           </p>
           <Link
             href="/seller/new"
-            className="mt-6 inline-block rounded-lg bg-brass px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-brass-deep hover:text-paper"
+            className="mt-6 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-accent-deep"
           >
             Add your first property
           </Link>
@@ -81,7 +81,7 @@ export default async function SellerDashboard() {
                       {h.city}, {h.country}
                     </p>
                     <details className="mt-1 text-xs text-slate [&_summary]:cursor-pointer">
-                      <summary className="font-medium text-brass-deep hover:underline">
+                      <summary className="font-medium text-accent-deep hover:underline">
                         Details
                       </summary>
                       <div className="mt-2 space-y-2 rounded-md border border-line bg-paper/50 p-3">

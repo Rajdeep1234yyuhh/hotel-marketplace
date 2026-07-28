@@ -6,7 +6,7 @@ const styles: Record<Variant, string> = {
   primary:
     "bg-ink text-paper hover:bg-ink/90 disabled:bg-ink/40 shadow-soft",
   secondary:
-    "bg-brass text-ink hover:bg-brass-deep hover:text-paper disabled:opacity-50",
+    "bg-accent text-white hover:bg-accent-deep disabled:opacity-50 shadow-sm",
   ghost:
     "bg-transparent text-ink border border-line hover:border-ink disabled:opacity-50",
   danger:

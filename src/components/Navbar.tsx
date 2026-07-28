@@ -39,27 +39,29 @@ export function Navbar({ user }: Props) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
       <nav className="container-page flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-baseline gap-2">
-          <span className="font-display text-xl font-semibold tracking-tight text-ink">
-            Travel Grid India
+        <Link href="/" className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent font-display text-sm font-bold text-white">
+            T
           </span>
-          <span className="hidden text-xs text-slate sm:inline">stay &amp; host</span>
+          <span className="font-display text-lg font-bold tracking-tight text-ink">
+            Travel<span className="text-accent">Grid</span> India
+          </span>
         </Link>
 
         {user ? (
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Link
               href="/browse"
-              className="hidden rounded-md px-3 py-2 text-sm text-slate transition hover:text-ink sm:inline-block"
+              className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-slate transition hover:bg-paper hover:text-ink sm:inline-block"
             >
               Browse stays
             </Link>
             {user.role === "SELLER" && (
               <Link
                 href="/seller"
-                className="hidden rounded-md px-3 py-2 text-sm text-slate transition hover:text-ink sm:inline-block"
+                className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-slate transition hover:bg-paper hover:text-ink sm:inline-block"
               >
                 My listings
               </Link>
@@ -67,16 +69,16 @@ export function Navbar({ user }: Props) {
             {user.role === "ADMIN" && (
               <Link
                 href="/admin"
-                className="hidden rounded-md px-3 py-2 text-sm text-slate transition hover:text-ink sm:inline-block"
+                className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-slate transition hover:bg-paper hover:text-ink sm:inline-block"
               >
                 Admin panel
               </Link>
             )}
 
-            <span className="hidden items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs text-slate md:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-brass" />
+            <span className="ml-1 hidden items-center gap-2 rounded-full border border-line bg-paper px-3 py-1.5 text-xs text-slate md:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               {user.name.split(" ")[0]} ·{" "}
-              <span className="font-medium text-ink">
+              <span className="font-semibold text-ink">
                 {user.role === "SELLER"
                   ? "Hosting"
                   : user.role === "ADMIN"
@@ -89,7 +91,7 @@ export function Navbar({ user }: Props) {
               <button
                 onClick={switchRole}
                 disabled={busy || isPending}
-                className="rounded-lg bg-brass px-3 py-2 text-xs font-medium text-ink transition hover:bg-brass-deep hover:text-paper disabled:opacity-50"
+                className="ml-1 rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-accent-deep disabled:opacity-50"
               >
                 {user.role === "SELLER" ? "Switch to booking" : "Switch to hosting"}
               </button>
@@ -97,7 +99,7 @@ export function Navbar({ user }: Props) {
             <button
               onClick={signOut}
               disabled={busy || isPending}
-              className="rounded-lg px-3 py-2 text-xs text-slate transition hover:text-ink disabled:opacity-50"
+              className="rounded-lg px-3 py-2 text-xs font-medium text-slate transition hover:text-ink disabled:opacity-50"
             >
               Sign out
             </button>
@@ -105,7 +107,7 @@ export function Navbar({ user }: Props) {
         ) : (
           <Link
             href="/"
-            className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:bg-ink/90"
+            className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-deep"
           >
             Get started
           </Link>

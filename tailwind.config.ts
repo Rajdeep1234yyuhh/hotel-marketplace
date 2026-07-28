@@ -5,24 +5,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#14121F",
-        paper: "#FBF8F3",
-        brass: "#C8A24B",
-        "brass-deep": "#A8842F",
-        slate: "#4A4658",
-        line: "#E7E0D6",
-        "line-dark": "#2A2738",
+        ink: "#0B1B33",
+        paper: "#F5F7FA",
+        accent: "#2563EB",
+        "accent-deep": "#1D4ED8",
+        slate: "#5B6472",
+        line: "#E3E8EF",
+        "line-dark": "#1E2A44",
       },
       fontFamily: {
-        display: ["var(--font-display)", "Georgia", "serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       borderRadius: {
-        card: "14px",
+        card: "16px",
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(20,18,31,0.04), 0 12px 32px -12px rgba(20,18,31,0.12)",
-        lift: "0 2px 4px rgba(20,18,31,0.06), 0 20px 48px -16px rgba(20,18,31,0.20)",
+        soft: "0 1px 2px rgba(11,27,51,0.04), 0 12px 32px -12px rgba(11,27,51,0.12)",
+        lift: "0 2px 4px rgba(11,27,51,0.06), 0 20px 48px -16px rgba(11,27,51,0.20)",
       },
     },
   },

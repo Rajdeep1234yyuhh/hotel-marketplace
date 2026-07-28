@@ -88,7 +88,7 @@ export default async function AdminDashboard() {
                         {h.city}, {h.country}
                       </p>
                       <details className="mt-1 text-xs text-slate [&_summary]:cursor-pointer">
-                        <summary className="font-medium text-brass-deep hover:underline">
+                        <summary className="font-medium text-accent-deep hover:underline">
                           Payout details
                         </summary>
                         <div className="mt-1 space-y-0.5 rounded-md border border-line bg-paper/50 p-2">
