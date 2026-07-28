@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { listHotels } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { HotelCard } from "@/components/HotelCard";
 import { SearchBar } from "@/components/SearchBar";
@@ -15,21 +15,7 @@ export default async function BrowsePage({
   const q = searchParams.q?.trim();
   const session = getSession();
 
-  const hotels = await prisma.hotel.findMany({
-    where: {
-      published: true,
-      ...(q
-        ? {
-            OR: [
-              { name: { contains: q } },
-              { city: { contains: q } },
-              { country: { contains: q } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const hotels = listHotels({ published: true, q: q || undefined });
 
   return (
     <div className="container-page py-10">

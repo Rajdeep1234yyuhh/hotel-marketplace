@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { listHotels, roomCategoriesForHotel, bookingCountsByHotel } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { DeleteHotelButton } from "@/components/DeleteHotelButton";
 import { formatMoney } from "@/lib/validations";
@@ -12,11 +12,12 @@ export default async function SellerDashboard() {
   if (!session) redirect("/");
   if (session.role !== "SELLER") redirect("/browse");
 
-  const hotels = await prisma.hotel.findMany({
-    where: { ownerId: session.userId },
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { bookings: true } } },
-  });
+  const bookingCounts = bookingCountsByHotel();
+  const hotels = listHotels({ ownerId: session.userId }).map((h) => ({
+    ...h,
+    _count: { bookings: bookingCounts[h.id] ?? 0 },
+    roomCategories: roomCategoriesForHotel(h.id),
+  }));
 
   const totalBookings = hotels.reduce((sum, h) => sum + h._count.bookings, 0);
 
@@ -79,6 +80,40 @@ export default async function SellerDashboard() {
                     <p className="text-xs text-slate sm:hidden">
                       {h.city}, {h.country}
                     </p>
+                    <details className="mt-1 text-xs text-slate [&_summary]:cursor-pointer">
+                      <summary className="font-medium text-brass-deep hover:underline">
+                        Details
+                      </summary>
+                      <div className="mt-2 space-y-2 rounded-md border border-line bg-paper/50 p-3">
+                        <div>
+                          <p className="font-medium text-ink">Contact</p>
+                          <p>{h.contactEmail || "—"}</p>
+                          <p>{h.contactPhone || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-ink">Payout (private)</p>
+                          <p>{h.bankAccountHolder || "—"}</p>
+                          <p>
+                            {h.bankName || "—"} · {h.bankAccountNumber || "—"} ·{" "}
+                            {h.bankIfsc || "—"}
+                          </p>
+                        </div>
+                        {h.roomCategories.length > 0 && (
+                          <div>
+                            <p className="font-medium text-ink">Room categories</p>
+                            <ul className="list-inside list-disc">
+                              {h.roomCategories.map((rc) => (
+                                <li key={rc.id}>
+                                  {rc.name} — {rc.totalRooms}{" "}
+                                  {rc.totalRooms === 1 ? "room" : "rooms"} ·{" "}
+                                  {formatMoney(rc.pricePerNight, h.currency)}/night
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </details>
                   </td>
                   <td className="hidden px-4 py-4 text-slate sm:table-cell">
                     {h.city}, {h.country}

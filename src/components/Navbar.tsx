@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 type Props = {
-  user: { name: string; role: "BUYER" | "SELLER" } | null;
+  user: { name: string; role: "BUYER" | "SELLER" | "ADMIN" } | null;
 };
 
 export function Navbar({ user }: Props) {
@@ -43,7 +43,7 @@ export function Navbar({ user }: Props) {
       <nav className="container-page flex h-16 items-center justify-between">
         <Link href="/" className="flex items-baseline gap-2">
           <span className="font-display text-xl font-semibold tracking-tight text-ink">
-            Verandah
+            Travel Grid India
           </span>
           <span className="hidden text-xs text-slate sm:inline">stay &amp; host</span>
         </Link>
@@ -64,22 +64,36 @@ export function Navbar({ user }: Props) {
                 My listings
               </Link>
             )}
+            {user.role === "ADMIN" && (
+              <Link
+                href="/admin"
+                className="hidden rounded-md px-3 py-2 text-sm text-slate transition hover:text-ink sm:inline-block"
+              >
+                Admin panel
+              </Link>
+            )}
 
             <span className="hidden items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs text-slate md:flex">
               <span className="h-1.5 w-1.5 rounded-full bg-brass" />
               {user.name.split(" ")[0]} ·{" "}
               <span className="font-medium text-ink">
-                {user.role === "SELLER" ? "Hosting" : "Booking"}
+                {user.role === "SELLER"
+                  ? "Hosting"
+                  : user.role === "ADMIN"
+                  ? "Admin"
+                  : "Booking"}
               </span>
             </span>
 
-            <button
-              onClick={switchRole}
-              disabled={busy || isPending}
-              className="rounded-lg bg-brass px-3 py-2 text-xs font-medium text-ink transition hover:bg-brass-deep hover:text-paper disabled:opacity-50"
-            >
-              {user.role === "SELLER" ? "Switch to booking" : "Switch to hosting"}
-            </button>
+            {user.role !== "ADMIN" && (
+              <button
+                onClick={switchRole}
+                disabled={busy || isPending}
+                className="rounded-lg bg-brass px-3 py-2 text-xs font-medium text-ink transition hover:bg-brass-deep hover:text-paper disabled:opacity-50"
+              >
+                {user.role === "SELLER" ? "Switch to booking" : "Switch to hosting"}
+              </button>
+            )}
             <button
               onClick={signOut}
               disabled={busy || isPending}

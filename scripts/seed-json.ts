@@ -1,28 +1,15 @@
-import { PrismaClient } from "@prisma/client";
+import { resetDb, upsertUserByEmail, createHotel } from "../src/lib/db";
 
-const prisma = new PrismaClient();
+function main() {
+  resetDb();
 
-async function main() {
-  // Wipe in dependency order so the seed is idempotent.
-  await prisma.booking.deleteMany();
-  await prisma.roomCategory.deleteMany();
-  await prisma.hotel.deleteMany();
-  await prisma.user.deleteMany();
-
-  const seller = await prisma.user.create({
-    data: { name: "Aarav Mehta", email: "seller@demo.test", role: "SELLER" },
-  });
-
-  await prisma.user.create({
-    data: { name: "Guest Traveller", email: "buyer@demo.test", role: "BUYER" },
-  });
+  const seller = upsertUserByEmail({ name: "Aarav Mehta", email: "seller@demo.test", role: "SELLER" });
+  upsertUserByEmail({ name: "Guest Traveller", email: "buyer@demo.test", role: "BUYER" });
 
   // Seeded directly with role ADMIN — there is no public sign-in path to this
   // role (see src/lib/session.ts); it exists so the /admin dashboard has real
   // data to query once a real auth system grants someone this role.
-  await prisma.user.create({
-    data: { name: "Marketplace Admin", email: "admin@demo.test", role: "ADMIN" },
-  });
+  upsertUserByEmail({ name: "Marketplace Admin", email: "admin@demo.test", role: "ADMIN" });
 
   const hotels = [
     {
@@ -32,11 +19,13 @@ async function main() {
       description:
         "A riverside heritage stay with teak verandahs overlooking the Brahmaputra. Mornings open onto mist on the water; evenings close with Assamese thalis served on the deck.",
       pricePerNight: 6200,
+      currency: "INR",
       rating: 4.8,
       imageUrl:
         "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80",
       amenities: "River view,Breakfast included,Free Wi-Fi,Airport shuttle,Spa",
       roomsTotal: 24,
+      published: true,
       contactEmail: "stay@brahmaputraverandah.test",
       contactPhone: "+91 98765 43210",
       bankAccountHolder: "Aarav Mehta",
@@ -72,11 +61,13 @@ async function main() {
       description:
         "A restored planter's bungalow set inside a working tea estate. Walk the rows at dawn, then return to a fireplace and a pot of single-estate first flush.",
       pricePerNight: 8900,
+      currency: "INR",
       rating: 4.9,
       imageUrl:
         "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&q=80",
       amenities: "Mountain view,Breakfast included,Free Wi-Fi,Guided walks,Fireplace",
       roomsTotal: 8,
+      published: true,
       contactEmail: "hello@cloudlinetea.test",
       contactPhone: "+91 90000 11223",
       bankAccountHolder: "Aarav Mehta",
@@ -100,8 +91,7 @@ async function main() {
           totalRooms: 3,
           pricePerNight: 12500,
           description: "A standalone cottage with a private veranda and outdoor seating.",
-          photos:
-            "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=900&q=80",
+          photos: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=900&q=80",
         },
       ],
     },
@@ -112,11 +102,13 @@ async function main() {
       description:
         "Bright sea-facing suites a few steps from the Fort Kochi promenade, built around a central courtyard with a saltwater pool.",
       pricePerNight: 5400,
+      currency: "INR",
       rating: 4.6,
       imageUrl:
         "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200&q=80",
       amenities: "Sea view,Pool,Free Wi-Fi,Restaurant,Bicycle hire",
       roomsTotal: 32,
+      published: true,
       contactEmail: "reservations@marinalighthouse.test",
       contactPhone: "+91 98111 22334",
       bankAccountHolder: "Aarav Mehta",
@@ -132,8 +124,7 @@ async function main() {
           totalRooms: 20,
           pricePerNight: 5400,
           description: "Compact rooms overlooking the saltwater pool and courtyard.",
-          photos:
-            "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=900&q=80",
+          photos: "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=900&q=80",
         },
         {
           name: "Sea-Facing Suite",
@@ -152,11 +143,13 @@ async function main() {
       description:
         "Canvas suites with hand-block interiors pitched on the Thar dunes. Camel rides at golden hour and folk music under an unobstructed night sky.",
       pricePerNight: 7300,
+      currency: "INR",
       rating: 4.7,
       imageUrl:
         "https://images.unsplash.com/photo-1455587734955-081b22074882?w=1200&q=80",
       amenities: "Desert view,All meals,Cultural evenings,Bonfire,Stargazing",
       roomsTotal: 18,
+      published: true,
       contactEmail: "camp@dunesandfolio.test",
       contactPhone: "+91 97000 55667",
       bankAccountHolder: "Aarav Mehta",
@@ -180,23 +173,10 @@ async function main() {
   ];
 
   for (const { roomCategories, ...h } of hotels) {
-    await prisma.hotel.create({
-      data: {
-        ...h,
-        ownerId: seller.id,
-        roomCategories: { create: roomCategories },
-      },
-    });
+    createHotel({ ...h, ownerId: seller.id }, roomCategories);
   }
 
-  console.log("Seeded users,", hotels.length, "hotels, and their room categories.");
+  console.log("Seeded users,", hotels.length, "hotels, and their room categories into data/db.json");
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main();

@@ -1,38 +1,29 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { listHotels, roomCategoriesForHotel, createHotel } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { createHotelSchema } from "@/lib/validations";
 
 // GET /api/hotels?q=...&owner=me
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q")?.trim();
+  const q = searchParams.get("q")?.trim() || undefined;
   const owner = searchParams.get("owner");
   const session = getSession();
 
-  const where: Record<string, unknown> = {};
-
+  let hotels;
   if (owner === "me") {
     if (!session) return NextResponse.json({ hotels: [] });
-    where.ownerId = session.userId;
+    hotels = listHotels({ ownerId: session.userId, q });
   } else {
-    where.published = true;
+    hotels = listHotels({ published: true, q });
   }
 
-  if (q) {
-    where.OR = [
-      { name: { contains: q } },
-      { city: { contains: q } },
-      { country: { contains: q } },
-    ];
-  }
+  const withCategories = hotels.map((h) => ({
+    ...h,
+    roomCategories: roomCategoriesForHotel(h.id),
+  }));
 
-  const hotels = await prisma.hotel.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-  });
-
-  return NextResponse.json({ hotels });
+  return NextResponse.json({ hotels: withCategories });
 }
 
 // POST /api/hotels  (sellers only)
@@ -58,9 +49,19 @@ export async function POST(req: Request) {
     );
   }
 
-  const hotel = await prisma.hotel.create({
-    data: { ...parsed.data, ownerId: session.userId },
-  });
+  const { roomCategories, latitude, longitude, ...hotelData } = parsed.data;
+
+  const hotel = createHotel(
+    {
+      ...hotelData,
+      rating: 0,
+      published: true,
+      latitude: latitude ?? null,
+      longitude: longitude ?? null,
+      ownerId: session.userId,
+    },
+    roomCategories
+  );
 
   return NextResponse.json({ hotel }, { status: 201 });
 }

@@ -5,35 +5,56 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { formatMoney, nightsBetween } from "@/lib/validations";
 
+type RoomCategoryOption = {
+  id: string;
+  name: string;
+  pricePerNight: number;
+  totalRooms: number;
+};
+
 type Props = {
   hotelId: string;
   pricePerNight: number;
   currency: string;
   canBook: boolean; // signed-in buyer
+  mealPlans: string[];
+  roomCategories: RoomCategoryOption[];
 };
 
 function isoToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function BookingForm({ hotelId, pricePerNight, currency, canBook }: Props) {
+export function BookingForm({
+  hotelId,
+  pricePerNight,
+  currency,
+  canBook,
+  mealPlans,
+  roomCategories,
+}: Props) {
   const router = useRouter();
   const [checkIn, setCheckIn] = useState(isoToday());
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(2);
   const [guestName, setGuestName] = useState("");
   const [email, setEmail] = useState("");
+  const [mealPlan, setMealPlan] = useState(mealPlans[0] ?? "Room Only");
+  const [roomCategoryId, setRoomCategoryId] = useState(roomCategories[0]?.id ?? "");
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState<{ nights: number; total: number } | null>(
     null
   );
 
+  const selectedCategory = roomCategories.find((c) => c.id === roomCategoryId);
+  const effectiveRate = selectedCategory?.pricePerNight ?? pricePerNight;
+
   const nights =
     checkIn && checkOut && new Date(checkOut) > new Date(checkIn)
       ? nightsBetween(checkIn, checkOut)
       : 0;
-  const total = useMemo(() => nights * pricePerNight, [nights, pricePerNight]);
+  const total = useMemo(() => nights * effectiveRate, [nights, effectiveRate]);
 
   async function submit() {
     setSubmitting(true);
@@ -41,7 +62,16 @@ export function BookingForm({ hotelId, pricePerNight, currency, canBook }: Props
     const res = await fetch("/api/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hotelId, guestName, email, checkIn, checkOut, guests }),
+      body: JSON.stringify({
+        hotelId,
+        guestName,
+        email,
+        checkIn,
+        checkOut,
+        guests,
+        mealPlan,
+        roomCategoryId: roomCategoryId || undefined,
+      }),
     });
 
     const data = await res.json().catch(() => ({}));
@@ -86,7 +116,7 @@ export function BookingForm({ hotelId, pricePerNight, currency, canBook }: Props
     <div className="rounded-card border border-line bg-white p-6 shadow-soft">
       <div className="flex items-baseline gap-1">
         <span className="font-display text-2xl text-ink">
-          {formatMoney(pricePerNight, currency)}
+          {formatMoney(effectiveRate, currency)}
         </span>
         <span className="text-sm text-slate">/ night</span>
       </div>
@@ -97,6 +127,45 @@ export function BookingForm({ hotelId, pricePerNight, currency, canBook }: Props
           account from the top bar.
         </p>
       )}
+
+      {roomCategories.length > 0 && (
+        <div className="mt-5">
+          <label htmlFor="roomCategory" className="field-label">
+            Room category
+          </label>
+          <select
+            id="roomCategory"
+            className="field-input"
+            value={roomCategoryId}
+            onChange={(e) => setRoomCategoryId(e.target.value)}
+          >
+            {roomCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} · {formatMoney(c.pricePerNight, currency)}/night · {c.totalRooms}{" "}
+                {c.totalRooms === 1 ? "room" : "rooms"}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className="mt-3">
+        <label htmlFor="mealPlan" className="field-label">
+          Meal plan
+        </label>
+        <select
+          id="mealPlan"
+          className="field-input"
+          value={mealPlan}
+          onChange={(e) => setMealPlan(e.target.value)}
+        >
+          {mealPlans.map((plan) => (
+            <option key={plan} value={plan}>
+              {plan}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div>
@@ -177,7 +246,7 @@ export function BookingForm({ hotelId, pricePerNight, currency, canBook }: Props
         <div className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
           <div className="flex justify-between text-slate">
             <span>
-              {formatMoney(pricePerNight, currency)} × {nights}{" "}
+              {formatMoney(effectiveRate, currency)} × {nights}{" "}
               {nights === 1 ? "night" : "nights"}
             </span>
             <span>{formatMoney(total, currency)}</span>

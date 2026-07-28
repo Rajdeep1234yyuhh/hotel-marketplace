@@ -1,4 +1,4 @@
-# Verandah — Two-Sided Hotel Marketplace
+# Travel Grid India — Two-Sided Hotel Marketplace
 
 A Next.js (App Router) marketplace where a user chooses to be a **buyer** (book
 stays) or a **seller/host** (list properties and take bookings). Built to be

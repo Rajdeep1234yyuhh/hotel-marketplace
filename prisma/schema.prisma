@@ -13,7 +13,7 @@ model User {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
-  role      String // "BUYER" | "SELLER"
+  role      String // "BUYER" | "SELLER" | "ADMIN"
   hotels    Hotel[]
   bookings  Booking[]
   createdAt DateTime @default(now())
@@ -32,32 +32,68 @@ model Hotel {
   amenities    String // comma-separated list, kept simple for SQLite
   roomsTotal   Int       @default(1)
   published    Boolean   @default(true)
-  owner        User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId      String
-  bookings     Booking[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+
+  // Hotel details: contact + payout info
+  contactEmail      String @default("")
+  contactPhone      String @default("")
+  bankAccountHolder String @default("")
+  bankAccountNumber String @default("")
+  bankIfsc          String @default("")
+  bankName          String @default("")
+
+  // Location + Google Maps
+  latitude  Float?
+  longitude Float?
+
+  // Meal plans on offer, comma-separated (e.g. "Room Only,Breakfast Included,Half Board")
+  mealPlans String @default("")
+
+  owner          User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId        String
+  roomCategories RoomCategory[]
+  bookings       Booking[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@index([city])
   @@index([ownerId])
 }
 
+model RoomCategory {
+  id            String    @id @default(cuid())
+  hotel         Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  hotelId       String
+  name          String
+  totalRooms    Int       @default(1)
+  pricePerNight Int
+  description   String    @default("")
+  photos        String    @default("") // comma-separated URLs, category-wise
+  bookings      Booking[]
+  createdAt     DateTime  @default(now())
+
+  @@index([hotelId])
+}
+
 model Booking {
-  id        String   @id @default(cuid())
-  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  hotelId   String
-  guest     User     @relation(fields: [guestId], references: [id], onDelete: Cascade)
-  guestId   String
-  guestName String
-  email     String
-  checkIn   DateTime
-  checkOut  DateTime
-  guests    Int      @default(1)
-  nights    Int
-  total     Int
-  status    String   @default("CONFIRMED") // CONFIRMED | CANCELLED
-  createdAt DateTime @default(now())
+  id             String        @id @default(cuid())
+  hotel          Hotel         @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  hotelId        String
+  guest          User          @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  guestId        String
+  guestName      String
+  email          String
+  checkIn        DateTime
+  checkOut       DateTime
+  guests         Int           @default(1)
+  nights         Int
+  total          Int
+  status         String        @default("CONFIRMED") // CONFIRMED | CANCELLED
+  mealPlan       String        @default("")
+  roomCategory   RoomCategory? @relation(fields: [roomCategoryId], references: [id], onDelete: SetNull)
+  roomCategoryId String?
+  createdAt      DateTime      @default(now())
 
   @@index([hotelId])
   @@index([guestId])
+  @@index([roomCategoryId])
 }

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { prisma } from "@/lib/prisma";
+import { findUserById } from "@/lib/db";
 
 /**
  * Lightweight, demo-grade session.
@@ -12,19 +12,24 @@ import { prisma } from "@/lib/prisma";
 
 const COOKIE = "hm_session";
 
-export type Role = "BUYER" | "SELLER";
+// ADMIN is a recognized role for authorization checks (super-admin dashboard),
+// but the public sign-in/switch-role endpoints only ever issue BUYER or SELLER —
+// granting ADMIN is left to whatever real auth system replaces this demo session.
+export type Role = "BUYER" | "SELLER" | "ADMIN";
 
 export type Session = {
   userId: string;
   role: Role;
 };
 
+const VALID_ROLES: Role[] = ["BUYER", "SELLER", "ADMIN"];
+
 export function getSession(): Session | null {
   const raw = cookies().get(COOKIE)?.value;
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Session;
-    if (!parsed.userId || (parsed.role !== "BUYER" && parsed.role !== "SELLER")) {
+    if (!parsed.userId || !VALID_ROLES.includes(parsed.role)) {
       return null;
     }
     return parsed;
@@ -49,5 +54,5 @@ export function clearSessionCookie() {
 export async function getCurrentUser() {
   const session = getSession();
   if (!session) return null;
-  return prisma.user.findUnique({ where: { id: session.userId } });
+  return findUserById(session.userId);
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { EnterForm } from "@/components/EnterForm";
 import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { listHotels } from "@/lib/db";
 
 export default async function HomePage() {
   const session = getSession();
@@ -12,12 +12,9 @@ export default async function HomePage() {
     redirect(session.role === "SELLER" ? "/seller" : "/browse");
   }
 
-  const [hotelCount, cityCount] = await Promise.all([
-    prisma.hotel.count({ where: { published: true } }),
-    prisma.hotel
-      .findMany({ where: { published: true }, select: { city: true } })
-      .then((rows) => new Set(rows.map((r) => r.city)).size),
-  ]);
+  const publishedHotels = listHotels({ published: true });
+  const hotelCount = publishedHotels.length;
+  const cityCount = new Set(publishedHotels.map((h) => h.city)).size;
 
   return (
     <div className="container-page grid items-center gap-12 py-12 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
@@ -31,7 +28,7 @@ export default async function HomePage() {
           <span className="text-brass-deep">own front door.</span>
         </h1>
         <p className="mt-6 max-w-md text-lg leading-relaxed text-slate">
-          Verandah puts travellers and hosts on the same platform. Find a place
+          Travel Grid India puts travellers and hosts on the same platform. Find a place
           to stay tonight, or list your property and take bookings — you decide
           which side you&apos;re on.
         </p>

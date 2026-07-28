@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { findHotelById, findRoomCategoryById, createBooking } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { createBookingSchema, nightsBetween } from "@/lib/validations";
 
@@ -23,29 +23,45 @@ export async function POST(req: Request) {
     );
   }
 
-  const { hotelId, guestName, email, checkIn, checkOut, guests } = parsed.data;
+  const { hotelId, guestName, email, checkIn, checkOut, guests, mealPlan, roomCategoryId } =
+    parsed.data;
 
-  const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
+  const hotel = findHotelById(hotelId);
   if (!hotel) {
     return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
   }
 
   // Always price on the server — never trust a client-supplied total.
-  const nights = nightsBetween(checkIn, checkOut);
-  const total = nights * hotel.pricePerNight;
+  let nightlyRate = hotel.pricePerNight;
+  let resolvedRoomCategoryId: string | null = null;
 
-  const booking = await prisma.booking.create({
-    data: {
-      hotelId,
-      guestId: session.userId,
-      guestName,
-      email,
-      checkIn: new Date(checkIn),
-      checkOut: new Date(checkOut),
-      guests,
-      nights,
-      total,
-    },
+  if (roomCategoryId) {
+    const category = findRoomCategoryById(roomCategoryId);
+    if (!category || category.hotelId !== hotelId) {
+      return NextResponse.json(
+        { error: "Selected room category is invalid" },
+        { status: 400 }
+      );
+    }
+    nightlyRate = category.pricePerNight;
+    resolvedRoomCategoryId = category.id;
+  }
+
+  const nights = nightsBetween(checkIn, checkOut);
+  const total = nights * nightlyRate;
+
+  const booking = createBooking({
+    hotelId,
+    guestId: session.userId,
+    guestName,
+    email,
+    checkIn: new Date(checkIn).toISOString(),
+    checkOut: new Date(checkOut).toISOString(),
+    guests,
+    nights,
+    total,
+    mealPlan,
+    roomCategoryId: resolvedRoomCategoryId,
   });
 
   return NextResponse.json({ booking, hotelName: hotel.name }, { status: 201 });

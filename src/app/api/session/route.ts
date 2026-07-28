@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { upsertUserByEmail, updateUserRole } from "@/lib/db";
 import { getSession, setSessionCookie, clearSessionCookie } from "@/lib/session";
 import { enterAsSchema, roleSchema } from "@/lib/validations";
 
@@ -17,11 +17,7 @@ export async function POST(req: Request) {
   const { name, email, role } = parsed.data;
 
   // Find or create the user, and keep their role current.
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: { name, role },
-    create: { name, email, role },
-  });
+  const user = upsertUserByEmail({ name, email, role });
 
   setSessionCookie({ userId: user.id, role: role });
 
@@ -41,10 +37,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
 
-  const user = await prisma.user.update({
-    where: { id: session.userId },
-    data: { role: parsed.data },
-  });
+  const user = updateUserRole(session.userId, parsed.data);
 
   setSessionCookie({ userId: user.id, role: parsed.data });
   return NextResponse.json({ role: parsed.data });
