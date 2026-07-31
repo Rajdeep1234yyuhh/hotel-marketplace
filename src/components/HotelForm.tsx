@@ -4,9 +4,13 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { formatMoney } from "@/lib/validations";
+import { prepareImageForUpload } from "@/lib/image-compression";
 
 const SAMPLE_IMAGE =
   "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1200&q=80";
+
+// Keep in sync with MAX_BYTES in src/app/api/upload/route.ts.
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 const MEAL_PLAN_SUGGESTIONS = [
   "Room Only",
@@ -93,8 +97,14 @@ export function HotelForm() {
     try {
       const uploaded: string[] = [];
       for (const file of files) {
+        // Resize/re-encode before upload — full-res phone photos are
+        // routinely 5-15 MB, well past the server's upload limit.
+        const prepared = await prepareImageForUpload(file);
+        if (prepared.size > MAX_UPLOAD_BYTES) {
+          throw new Error(`"${file.name}" is too large even after compression — try a smaller photo.`);
+        }
         const fd = new FormData();
-        fd.append("file", file);
+        fd.append("file", prepared);
         const res = await fetch("/api/upload", { method: "POST", body: fd });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error ?? "Upload failed");
