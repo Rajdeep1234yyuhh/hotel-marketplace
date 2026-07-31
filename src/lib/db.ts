@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { DocumentSnapshot, Query, QueryDocumentSnapshot } from "firebase-admin/firestore";
-import { firestore } from "@/lib/firebase-admin";
+import { getFirestoreDb } from "@/lib/firebase-admin";
 
 /**
  * Firestore-backed data store. Every function here mirrors what the
@@ -73,10 +73,10 @@ export type Booking = {
   createdAt: string;
 };
 
-const usersCol = () => firestore.collection("users");
-const hotelsCol = () => firestore.collection("hotels");
-const roomCategoriesCol = () => firestore.collection("roomCategories");
-const bookingsCol = () => firestore.collection("bookings");
+const usersCol = () => getFirestoreDb().collection("users");
+const hotelsCol = () => getFirestoreDb().collection("hotels");
+const roomCategoriesCol = () => getFirestoreDb().collection("roomCategories");
+const bookingsCol = () => getFirestoreDb().collection("bookings");
 
 export function newId() {
   return randomUUID();
@@ -93,7 +93,7 @@ function fromDoc<T>(doc: QueryDocumentSnapshot | DocumentSnapshot): T {
 async function deleteAll(query: Query) {
   const snap = await query.get();
   for (let i = 0; i < snap.docs.length; i += 450) {
-    const batch = firestore.batch();
+    const batch = getFirestoreDb().batch();
     snap.docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
     await batch.commit();
   }
@@ -221,7 +221,7 @@ export async function createHotel(
 
   const categories: RoomCategory[] = [];
   if (roomCategoryInputs.length > 0) {
-    const batch = firestore.batch();
+    const batch = getFirestoreDb().batch();
     for (const c of roomCategoryInputs) {
       const categoryId = newId();
       const categoryData = { ...c, hotelId: id, createdAt: nowIso() };

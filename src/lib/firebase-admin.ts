@@ -1,10 +1,16 @@
-import { cert, getApps, initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
+import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
-function adminApp() {
+let app: App | undefined;
+let db: Firestore | undefined;
+
+function adminApp(): App {
+  if (app) return app;
   const existing = getApps();
-  if (existing.length) return existing[0];
+  if (existing.length) {
+    app = existing[0];
+    return app;
+  }
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -17,10 +23,18 @@ function adminApp() {
     );
   }
 
-  return initializeApp({
+  app = initializeApp({
     credential: cert({ projectId, clientEmail, privateKey }),
   });
+  return app;
 }
 
-export const firestore = getFirestore(adminApp());
-export const adminAuth = getAuth(adminApp());
+/**
+ * Lazily initialized — merely importing this module (e.g. when Next.js
+ * collects page data at build time) must never throw. Only an actual
+ * request, which calls this function, needs real credentials.
+ */
+export function getFirestoreDb(): Firestore {
+  if (!db) db = getFirestore(adminApp());
+  return db;
+}
