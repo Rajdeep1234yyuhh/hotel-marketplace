@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { findHotelById, findUserById, roomCategoriesForHotel } from "@/lib/db";
-import { getSession } from "@/lib/session";
 import { BookingForm } from "@/components/BookingForm";
 import { formatMoney, mealPlansToList, toList } from "@/lib/validations";
 
@@ -12,19 +11,22 @@ export default async function HotelDetailPage({
 }: {
   params: { id: string };
 }) {
-  const hotelRecord = findHotelById(params.id);
+  const hotelRecord = await findHotelById(params.id);
   if (!hotelRecord) notFound();
 
-  const owner = findUserById(hotelRecord.ownerId);
+  const [owner, roomCategories] = await Promise.all([
+    findUserById(hotelRecord.ownerId),
+    roomCategoriesForHotel(hotelRecord.id),
+  ]);
   const hotel = {
     ...hotelRecord,
     owner: { name: owner?.name ?? "Host" },
-    roomCategories: roomCategoriesForHotel(hotelRecord.id),
+    roomCategories,
   };
 
-  const session = getSession();
   const amenities = toList(hotel.amenities);
   const mealPlans = mealPlansToList(hotel.mealPlans);
+  const photos = toList(hotel.images);
   const hasCoordinates = hotel.latitude != null && hotel.longitude != null;
 
   return (
@@ -39,11 +41,25 @@ export default async function HotelDetailPage({
       <div className="mt-4 overflow-hidden rounded-card border border-line shadow-soft">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={hotel.imageUrl}
+          src={photos[0]}
           alt={hotel.name}
           className="h-72 w-full object-cover sm:h-96"
         />
       </div>
+
+      {photos.length > 1 && (
+        <div className="mt-3 flex gap-2 overflow-x-auto">
+          {photos.slice(1).map((p, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={i}
+              src={p}
+              alt={hotel.name}
+              className="h-20 w-28 flex-none rounded-md border border-line object-cover"
+            />
+          ))}
+        </div>
+      )}
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
         <div>
@@ -215,7 +231,6 @@ export default async function HotelDetailPage({
             hotelId={hotel.id}
             pricePerNight={hotel.pricePerNight}
             currency={hotel.currency}
-            canBook={session?.role === "BUYER"}
             mealPlans={mealPlans}
             roomCategories={hotel.roomCategories.map((rc) => ({
               id: rc.id,

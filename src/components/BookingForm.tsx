@@ -16,7 +16,6 @@ type Props = {
   hotelId: string;
   pricePerNight: number;
   currency: string;
-  canBook: boolean; // signed-in buyer
   mealPlans: string[];
   roomCategories: RoomCategoryOption[];
 };
@@ -29,7 +28,6 @@ export function BookingForm({
   hotelId,
   pricePerNight,
   currency,
-  canBook,
   mealPlans,
   roomCategories,
 }: Props) {
@@ -120,13 +118,6 @@ export function BookingForm({
         </span>
         <span className="text-sm text-slate">/ night</span>
       </div>
-
-      {!canBook && (
-        <p className="mt-3 rounded-lg bg-paper p-3 text-xs text-slate">
-          You can build a booking here. To confirm it, switch to a booking
-          account from the top bar.
-        </p>
-      )}
 
       {roomCategories.length > 0 && (
         <div className="mt-5">

@@ -1,51 +1,26 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 type Role = "BUYER" | "SELLER";
 
-const roleCopy: Record<Role, { title: string; blurb: string; cta: string }> = {
+const roleCopy: Record<Role, { title: string; blurb: string }> = {
   BUYER: {
     title: "I'm here to book",
-    blurb: "Browse independent stays and reserve in a few taps.",
-    cta: "Start booking",
+    blurb: "Browse independent stays and reserve in a few taps — no sign-in needed.",
   },
   SELLER: {
     title: "I'm here to host",
-    blurb: "List a property and manage your rooms from one dashboard.",
-    cta: "Start hosting",
+    blurb: "Sign in with Google to open your host dashboard and start taking bookings.",
   },
 };
 
 export function EnterForm() {
-  const router = useRouter();
-  const [role, setRole] = useState<Role>("BUYER");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
-  const [submitting, setSubmitting] = useState(false);
-
-  async function submit() {
-    setSubmitting(true);
-    setErrors({});
-    const res = await fetch("/api/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, role }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setErrors(typeof data.error === "object" ? data.error : {});
-      setSubmitting(false);
-      return;
-    }
-
-    router.push(role === "SELLER" ? "/seller" : "/browse");
-    router.refresh();
-  }
+  // Hosting is the default — this panel exists mainly to get hosts signed in;
+  // booking never needs any of this, it just hands off to /browse.
+  const [role, setRole] = useState<Role>("SELLER");
 
   return (
     <div className="rounded-card border border-line bg-white p-6 shadow-lift sm:p-8">
@@ -77,48 +52,17 @@ export function EnterForm() {
         })}
       </div>
 
-      <div className="mt-6 space-y-4">
-        <div>
-          <label htmlFor="name" className="field-label">
-            Name
-          </label>
-          <input
-            id="name"
-            className="field-input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Jordan Rivera"
-            autoComplete="name"
-          />
-          {errors.name && <p className="field-error">{errors.name[0]}</p>}
-        </div>
-        <div>
-          <label htmlFor="email" className="field-label">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            className="field-input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-          />
-          {errors.email && <p className="field-error">{errors.email[0]}</p>}
-        </div>
-
-        <Button
-          onClick={submit}
-          disabled={submitting}
-          className="w-full"
-          variant="secondary"
-        >
-          {submitting ? "One moment…" : roleCopy[role].cta}
-        </Button>
-        <p className="text-center text-xs text-slate">
-          No password needed for this demo. You can switch roles anytime from the top bar.
-        </p>
+      <div className="mt-6">
+        {role === "SELLER" ? (
+          <GoogleSignInButton />
+        ) : (
+          <Link
+            href="/browse"
+            className="flex w-full items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-deep"
+          >
+            Browse stays
+          </Link>
+        )}
       </div>
     </div>
   );

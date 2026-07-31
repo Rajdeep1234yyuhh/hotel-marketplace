@@ -9,24 +9,50 @@ external services.
 
 - **Next.js 14** (App Router, Route Handlers, Server Components)
 - **TypeScript** (strict)
-- **JSON file data store** (`src/lib/db.ts`, backed by `data/db.json`) — a
-  placeholder until Firebase is wired up; see "Moving to production" below
+- **Firebase Admin SDK / Firestore** (`src/lib/db.ts`) — server-only data
+  access
+- **NextAuth.js** — handles the "Continue with Google" OAuth handshake; its
+  result is bridged into the app's own cookie session (see "Auth" below)
 - **Tailwind CSS** with a custom hospitality theme
 - **Zod** for end-to-end request validation
-- Cookie-based demo session (designed to be replaced by NextAuth/Auth.js)
+- Cookie-based session (`src/lib/session.ts`) that also accepts a real,
+  verified Google identity — see "Auth" below
 
 ## Getting started
 
-Requires Node.js 18.18+.
+Requires Node.js 18.18+ and a Firebase project with Firestore enabled.
+
+1. In the [Firebase Console](https://console.firebase.google.com), create a
+   project (or use an existing one) and enable **Firestore Database** (Native
+   mode).
+2. Go to **Project Settings > Service Accounts > Generate new private key**.
+   This downloads a JSON file with `project_id`, `client_email`, and
+   `private_key`.
+3. Copy `.env.example` to `.env` and fill in `FIREBASE_PROJECT_ID`,
+   `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` from that file (keep
+   the private key's `\n` sequences literal — see the comment in
+   `.env.example`).
+4. For "Continue with Google" (see "Auth" below): create an OAuth 2.0 **Web
+   application** client in [Google Cloud Console](https://console.cloud.google.com)
+   (APIs & Services > Credentials). Add
+   `{NEXTAUTH_URL}/api/auth/callback/google` (e.g.
+   `http://localhost:3000/api/auth/callback/google` for local dev) to its
+   **Authorised redirect URIs**. Put the client ID/secret in
+   `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+5. Generate `NEXTAUTH_SECRET` (`openssl rand -base64 32`, or see the comment
+   in `.env.example`) and set `NEXTAUTH_URL` to wherever the app runs.
+6. If deploying to Vercel, add all of the above variables in the project's
+   **Settings > Environment Variables** — including a production
+   `NEXTAUTH_URL` and a matching redirect URI on the OAuth client.
 
 ```bash
 npm install            # installs deps
-npm run db:seed        # loads demo users + 4 sample hotels into data/db.json
+npm run db:seed        # loads demo users + 4 sample hotels into Firestore
 npm run dev            # http://localhost:3000
 ```
 
-Re-seeding at any time replaces `data/db.json` with fresh demo data (it wipes
-and rebuilds, so it's safe to re-run).
+Re-seeding at any time wipes and rebuilds the demo data, so it's safe to
+re-run.
 
 ## How it works
 
@@ -44,14 +70,39 @@ can do both. There is no public sign-in path to the `ADMIN` role (see
 `src/lib/session.ts`); it's reserved for whatever real auth system replaces
 the demo session.
 
+### Auth
+
+There are three ways in, all ending in the same `hm_session` cookie
+(`{ userId, role }`) that every page/route already checks:
+
+- **Continue with Google** — `GoogleSignInButton` calls NextAuth's
+  `signIn("google", { callbackUrl: "/api/auth/bridge?role=..." })`, which
+  redirects through Google's real OAuth flow (config in
+  `src/lib/auth-options.ts`, routed via `src/app/api/auth/[...nextauth]`).
+  Once that completes, `/api/auth/bridge` reads NextAuth's verified session,
+  upserts the matching Firestore user, and issues our own session cookie —
+  NextAuth's own session/JWT is never used elsewhere in the app.
+- **`/login`** — email-only lookup for returning users (`/api/auth/login`).
+  Doesn't let you pick a role; you get whatever role you already have, and
+  it 404s clearly if the email isn't registered yet.
+- **`/#get-started`** — the original no-password demo form (name, email,
+  role tiles), unchanged.
+
+All three are self-selected BUYER/SELLER only — see the `ADMIN` note above —
+and all three explicitly refuse to sign in an existing `ADMIN` account (403),
+so no public path can touch or downgrade it.
+
 ### API
 
-| Endpoint              | Methods                  | Notes                                     |
-| --------------------- | ------------------------ | ------------------------------------------ |
-| `/api/session`        | POST, PATCH, DELETE      | Enter as role, switch role, sign out       |
-| `/api/hotels`         | GET, POST                | List/search; create with room categories (sellers only) |
-| `/api/hotels/[id]`    | GET, PATCH, DELETE       | Read one; publish toggle / delete (owner or admin) |
-| `/api/bookings`       | POST                     | Create booking; priced server-side off the selected room category |
+| Endpoint                    | Methods             | Notes                                     |
+| ---------------------------- | -------------------- | ------------------------------------------ |
+| `/api/session`               | POST, PATCH, DELETE | Enter as role (demo form), switch role, sign out |
+| `/api/auth/[...nextauth]`    | GET, POST            | NextAuth's own routes (sign-in, callback, etc.) |
+| `/api/auth/bridge`           | GET                  | Turns a completed NextAuth sign-in into our session cookie |
+| `/api/auth/login`            | POST                 | Look up an existing user by email, sign them back in |
+| `/api/hotels`                | GET, POST            | List/search; create with room categories (sellers only) |
+| `/api/hotels/[id]`           | GET, PATCH, DELETE   | Read one; publish toggle / delete (owner or admin) |
+| `/api/bookings`              | POST                 | Create booking; priced server-side off the selected room category |
 
 ## Demo accounts
 
@@ -61,14 +112,12 @@ the landing page — no password required.
 
 ## Moving to production
 
-1. Replace `src/lib/db.ts` with Firebase (Firestore) calls, keeping the same
-   exported function signatures (`findHotelById`, `listHotels`, `createHotel`,
-   etc.) so call sites don't need to change. The JSON file store does **not**
-   persist correctly on serverless platforms like Vercel (ephemeral
-   filesystem) — it's only reliable for local development.
-2. Replace `src/lib/session.ts` with NextAuth/Auth.js. Only `getSession`,
-   `getCurrentUser`, `setSessionCookie`, and `clearSessionCookie` are consumed
-   by the app, so the surface to swap is small. This is also where the
-   `ADMIN` role would get a real, non-self-service assignment path.
-3. Add a real payment provider in `/api/bookings` (e.g. Razorpay/Stripe) before
+1. NextAuth now handles real Google identity verification, but authorization
+   (`getSession`, `getCurrentUser`, roles) still runs on the lightweight
+   `hm_session` cookie in `src/lib/session.ts`. To go further, either drive
+   role/session state directly off NextAuth's session (removing the bridge
+   step) or keep the bridge and add more real providers to
+   `src/lib/auth-options.ts`. Either way, this is where the `ADMIN` role
+   should get a real, non-self-service assignment path.
+2. Add a real payment provider in `/api/bookings` (e.g. Razorpay/Stripe) before
    marking a booking `CONFIRMED`.

@@ -1,11 +1,7 @@
 import { z } from "zod";
 
-export const roleSchema = z.enum(["BUYER", "SELLER"]);
-
-export const enterAsSchema = z.object({
-  name: z.string().trim().min(2, "Enter your name").max(80),
+export const loginSchema = z.object({
   email: z.string().trim().email("Enter a valid email"),
-  role: roleSchema,
 });
 
 export const roomCategorySchema = z.object({
@@ -24,7 +20,19 @@ export const createHotelSchema = z
     description: z.string().trim().min(20, "Add at least a short description").max(2000),
     pricePerNight: z.coerce.number().int().positive("Price must be greater than 0"),
     currency: z.string().trim().default("INR"),
-    imageUrl: z.string().trim().url("Enter a valid image URL"),
+    images: z
+      .string()
+      .trim()
+      .min(1, "Add at least one photo")
+      .refine(
+        (v) =>
+          v
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .every((u) => /^https?:\/\//.test(u)),
+        "Enter valid photo URLs"
+      ),
     amenities: z.string().trim().default(""),
     roomsTotal: z.coerce.number().int().positive().default(1),
 

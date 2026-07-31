@@ -12,12 +12,15 @@ export default async function SellerDashboard() {
   if (!session) redirect("/");
   if (session.role !== "SELLER") redirect("/browse");
 
-  const bookingCounts = bookingCountsByHotel();
-  const hotels = listHotels({ ownerId: session.userId }).map((h) => ({
-    ...h,
-    _count: { bookings: bookingCounts[h.id] ?? 0 },
-    roomCategories: roomCategoriesForHotel(h.id),
-  }));
+  const bookingCounts = await bookingCountsByHotel();
+  const ownedHotels = await listHotels({ ownerId: session.userId });
+  const hotels = await Promise.all(
+    ownedHotels.map(async (h) => ({
+      ...h,
+      _count: { bookings: bookingCounts[h.id] ?? 0 },
+      roomCategories: await roomCategoriesForHotel(h.id),
+    }))
+  );
 
   const totalBookings = hotels.reduce((sum, h) => sum + h._count.bookings, 0);
 

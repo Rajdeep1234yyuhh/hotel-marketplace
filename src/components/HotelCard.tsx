@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatMoney } from "@/lib/validations";
+import { formatMoney, toList } from "@/lib/validations";
 
 export type HotelCardData = {
   id: string;
@@ -9,7 +9,7 @@ export type HotelCardData = {
   pricePerNight: number;
   currency: string;
   rating: number;
-  imageUrl: string;
+  images: string;
 };
 
 function ratingLabel(rating: number) {
@@ -27,6 +27,7 @@ export function HotelCard({
   hotel: HotelCardData;
   href: string;
 }) {
+  const cover = toList(hotel.images)[0];
   return (
     <Link
       href={href}
@@ -35,7 +36,7 @@ export function HotelCard({
       <div className="relative aspect-[4/3] overflow-hidden bg-line">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={hotel.imageUrl}
+          src={cover}
           alt={hotel.name}
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"

@@ -12,7 +12,7 @@ export default async function HomePage() {
     redirect(session.role === "SELLER" ? "/seller" : "/browse");
   }
 
-  const publishedHotels = listHotels({ published: true });
+  const publishedHotels = await listHotels({ published: true });
   const hotelCount = publishedHotels.length;
   const cityCount = new Set(publishedHotels.map((h) => h.city)).size;
 
@@ -31,9 +31,9 @@ export default async function HomePage() {
             <span className="text-sky-300">own front door.</span>
           </h1>
           <p className="mt-6 max-w-md text-lg leading-relaxed text-white/80">
-            Travel Grid India puts travellers and hosts on the same platform. Find a place
-            to stay tonight, or list your property and take bookings — you decide
-            which side you&apos;re on.
+            Travel Grid India puts travellers and hosts on the same platform.
+            Browse and book a stay tonight — no sign-in required. Listing your
+            own property just takes one click with Google.
           </p>
 
           <form
@@ -88,7 +88,7 @@ export default async function HomePage() {
           </p>
         </section>
 
-        <section>
+        <section id="get-started">
           <EnterForm />
         </section>
       </div>

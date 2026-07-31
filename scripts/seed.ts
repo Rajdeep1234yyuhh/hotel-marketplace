@@ -1,15 +1,16 @@
+import "dotenv/config";
 import { resetDb, upsertUserByEmail, createHotel } from "../src/lib/db";
 
-function main() {
-  resetDb();
+async function main() {
+  await resetDb();
 
-  const seller = upsertUserByEmail({ name: "Aarav Mehta", email: "seller@demo.test", role: "SELLER" });
-  upsertUserByEmail({ name: "Guest Traveller", email: "buyer@demo.test", role: "BUYER" });
+  const seller = await upsertUserByEmail({ name: "Aarav Mehta", email: "seller@demo.test", role: "SELLER" });
+  await upsertUserByEmail({ name: "Guest Traveller", email: "buyer@demo.test", role: "BUYER" });
 
   // Seeded directly with role ADMIN — there is no public sign-in path to this
   // role (see src/lib/session.ts); it exists so the /admin dashboard has real
   // data to query once a real auth system grants someone this role.
-  upsertUserByEmail({ name: "Marketplace Admin", email: "admin@demo.test", role: "ADMIN" });
+  await upsertUserByEmail({ name: "Marketplace Admin", email: "admin@demo.test", role: "ADMIN" });
 
   const hotels = [
     {
@@ -21,8 +22,8 @@ function main() {
       pricePerNight: 6200,
       currency: "INR",
       rating: 4.8,
-      imageUrl:
-        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80",
+      images:
+        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80,https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=1200&q=80,https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=1200&q=80",
       amenities: "River view,Breakfast included,Free Wi-Fi,Airport shuttle,Spa",
       roomsTotal: 24,
       published: true,
@@ -63,8 +64,8 @@ function main() {
       pricePerNight: 8900,
       currency: "INR",
       rating: 4.9,
-      imageUrl:
-        "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&q=80",
+      images:
+        "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&q=80,https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200&q=80,https://images.unsplash.com/photo-1499696010180-025ef6e1a8f9?w=1200&q=80",
       amenities: "Mountain view,Breakfast included,Free Wi-Fi,Guided walks,Fireplace",
       roomsTotal: 8,
       published: true,
@@ -104,8 +105,8 @@ function main() {
       pricePerNight: 5400,
       currency: "INR",
       rating: 4.6,
-      imageUrl:
-        "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200&q=80",
+      images:
+        "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200&q=80,https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&q=80,https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1200&q=80",
       amenities: "Sea view,Pool,Free Wi-Fi,Restaurant,Bicycle hire",
       roomsTotal: 32,
       published: true,
@@ -145,8 +146,8 @@ function main() {
       pricePerNight: 7300,
       currency: "INR",
       rating: 4.7,
-      imageUrl:
-        "https://images.unsplash.com/photo-1455587734955-081b22074882?w=1200&q=80",
+      images:
+        "https://images.unsplash.com/photo-1455587734955-081b22074882?w=1200&q=80,https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=1200&q=80,https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&q=80",
       amenities: "Desert view,All meals,Cultural evenings,Bonfire,Stargazing",
       roomsTotal: 18,
       published: true,
@@ -173,10 +174,14 @@ function main() {
   ];
 
   for (const { roomCategories, ...h } of hotels) {
-    createHotel({ ...h, ownerId: seller.id }, roomCategories);
+    await createHotel({ ...h, ownerId: seller.id }, roomCategories);
   }
 
-  console.log("Seeded users,", hotels.length, "hotels, and their room categories into data/db.json");
+  console.log("Seeded users,", hotels.length, "hotels, and their room categories into Firestore.");
 }
 
-main();
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

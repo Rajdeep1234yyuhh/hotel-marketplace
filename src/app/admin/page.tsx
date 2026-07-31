@@ -20,19 +20,24 @@ export default async function AdminDashboard() {
   if (!session) redirect("/");
   if (session.role !== "ADMIN") redirect("/browse");
 
-  const bookingCounts = bookingCountsByHotel();
-  const users = listUsers();
-  const bookingsCount = countBookings();
+  const [bookingCounts, users, bookingsCount, allHotels] = await Promise.all([
+    bookingCountsByHotel(),
+    listUsers(),
+    countBookings(),
+    listHotels(),
+  ]);
 
-  const hotels = listHotels().map((h) => {
-    const owner = findUserById(h.ownerId);
-    return {
-      ...h,
-      owner: { name: owner?.name ?? "Unknown", email: owner?.email ?? "—" },
-      roomCategories: roomCategoriesForHotel(h.id),
-      _count: { bookings: bookingCounts[h.id] ?? 0 },
-    };
-  });
+  const hotels = await Promise.all(
+    allHotels.map(async (h) => {
+      const owner = await findUserById(h.ownerId);
+      return {
+        ...h,
+        owner: { name: owner?.name ?? "Unknown", email: owner?.email ?? "—" },
+        roomCategories: await roomCategoriesForHotel(h.id),
+        _count: { bookings: bookingCounts[h.id] ?? 0 },
+      };
+    })
+  );
 
   const publishedCount = hotels.filter((h) => h.published).length;
 

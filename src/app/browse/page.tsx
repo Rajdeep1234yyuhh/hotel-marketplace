@@ -15,7 +15,7 @@ export default async function BrowsePage({
   const q = searchParams.q?.trim();
   const session = getSession();
 
-  const hotels = listHotels({ published: true, q: q || undefined });
+  const hotels = await listHotels({ published: true, q: q || undefined });
 
   return (
     <div className="container-page py-10">

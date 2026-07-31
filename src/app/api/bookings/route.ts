@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
-import { findHotelById, findRoomCategoryById, createBooking } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import {
+  findHotelById,
+  findRoomCategoryById,
+  findUserByEmail,
+  createUser,
+  createBooking,
+} from "@/lib/db";
 import { createBookingSchema, nightsBetween } from "@/lib/validations";
 
-// POST /api/bookings
+// POST /api/bookings — booking never requires a session. Anyone can browse
+// and book; the guest name/email collected on this form is all that's
+// needed. A lightweight BUYER user record is created (or reused) purely to
+// satisfy the booking's guestId reference — no cookie is set, so the
+// browser stays signed out the whole time.
 export async function POST(req: Request) {
-  const session = getSession();
-  if (!session) {
-    return NextResponse.json(
-      { error: "Sign in as a traveller to book" },
-      { status: 401 }
-    );
-  }
-
   const body = await req.json().catch(() => null);
   const parsed = createBookingSchema.safeParse(body);
 
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
   const { hotelId, guestName, email, checkIn, checkOut, guests, mealPlan, roomCategoryId } =
     parsed.data;
 
-  const hotel = findHotelById(hotelId);
+  const hotel = await findHotelById(hotelId);
   if (!hotel) {
     return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
   }
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
   let resolvedRoomCategoryId: string | null = null;
 
   if (roomCategoryId) {
-    const category = findRoomCategoryById(roomCategoryId);
+    const category = await findRoomCategoryById(roomCategoryId);
     if (!category || category.hotelId !== hotelId) {
       return NextResponse.json(
         { error: "Selected room category is invalid" },
@@ -50,9 +51,18 @@ export async function POST(req: Request) {
   const nights = nightsBetween(checkIn, checkOut);
   const total = nights * nightlyRate;
 
-  const booking = createBooking({
+  // Reuse an existing account if this email already has one (keeping
+  // whatever role it already has — never downgrade a SELLER/ADMIN just
+  // because they booked with their own email). Otherwise create a fresh,
+  // session-less BUYER record purely to satisfy the guestId reference.
+  const existingGuest = await findUserByEmail(email);
+  const guestId = existingGuest
+    ? existingGuest.id
+    : (await createUser({ name: guestName, email, role: "BUYER" })).id;
+
+  const booking = await createBooking({
     hotelId,
-    guestId: session.userId,
+    guestId,
     guestName,
     email,
     checkIn: new Date(checkIn).toISOString(),

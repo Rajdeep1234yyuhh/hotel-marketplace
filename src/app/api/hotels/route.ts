@@ -13,15 +13,17 @@ export async function GET(req: Request) {
   let hotels;
   if (owner === "me") {
     if (!session) return NextResponse.json({ hotels: [] });
-    hotels = listHotels({ ownerId: session.userId, q });
+    hotels = await listHotels({ ownerId: session.userId, q });
   } else {
-    hotels = listHotels({ published: true, q });
+    hotels = await listHotels({ published: true, q });
   }
 
-  const withCategories = hotels.map((h) => ({
-    ...h,
-    roomCategories: roomCategoriesForHotel(h.id),
-  }));
+  const withCategories = await Promise.all(
+    hotels.map(async (h) => ({
+      ...h,
+      roomCategories: await roomCategoriesForHotel(h.id),
+    }))
+  );
 
   return NextResponse.json({ hotels: withCategories });
 }
@@ -51,7 +53,7 @@ export async function POST(req: Request) {
 
   const { roomCategories, latitude, longitude, ...hotelData } = parsed.data;
 
-  const hotel = createHotel(
+  const hotel = await createHotel(
     {
       ...hotelData,
       rating: 0,

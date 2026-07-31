@@ -6,12 +6,12 @@ export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const hotel = findHotelById(params.id);
+  const hotel = await findHotelById(params.id);
   if (!hotel) {
     return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
   }
   return NextResponse.json({
-    hotel: { ...hotel, roomCategories: roomCategoriesForHotel(hotel.id) },
+    hotel: { ...hotel, roomCategories: await roomCategoriesForHotel(hotel.id) },
   });
 }
 
@@ -25,7 +25,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Sign in to continue" }, { status: 401 });
   }
 
-  const hotel = findHotelById(params.id);
+  const hotel = await findHotelById(params.id);
   if (!hotel) {
     return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
   }
@@ -41,7 +41,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const updated = updateHotelPublished(params.id, body.published);
+  const updated = await updateHotelPublished(params.id, body.published);
   return NextResponse.json({ hotel: updated });
 }
 
@@ -54,7 +54,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Sign in to continue" }, { status: 401 });
   }
 
-  const hotel = findHotelById(params.id);
+  const hotel = await findHotelById(params.id);
   if (!hotel) {
     return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
   }
@@ -65,6 +65,6 @@ export async function DELETE(
     );
   }
 
-  deleteHotel(params.id);
+  await deleteHotel(params.id);
   return NextResponse.json({ ok: true });
 }

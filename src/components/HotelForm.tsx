@@ -40,7 +40,6 @@ export function HotelForm() {
     description: "",
     pricePerNight: "",
     currency: "INR",
-    imageUrl: "",
     amenities: "",
     roomsTotal: "1",
     contactEmail: "",
@@ -58,7 +57,8 @@ export function HotelForm() {
   ]);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
+  const [images, setImages] = useState<string[]>([]);
+  const [imageUrlInput, setImageUrlInput] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,24 +85,38 @@ export function HotelForm() {
     setRoomCategories((rows) => rows.filter((_, i) => i !== index));
   }
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function handleFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
     setUploadError("");
     setUploading(true);
-    update("imageUrl", "");
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Upload failed");
-      update("imageUrl", data.url);
+      const uploaded: string[] = [];
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error ?? "Upload failed");
+        uploaded.push(data.url);
+      }
+      setImages((prev) => [...prev, ...uploaded]);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
     }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function addImageUrl() {
+    const url = imageUrlInput.trim();
+    if (!url) return;
+    setImages((prev) => [...prev, url]);
+    setImageUrlInput("");
+  }
+
+  function removeImage(index: number) {
+    setImages((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function submit() {
@@ -119,12 +133,18 @@ export function HotelForm() {
       return;
     }
 
+    if (images.length === 0) {
+      setErrors({ images: ["Add at least one photo"] });
+      return;
+    }
+
     setSubmitting(true);
     const res = await fetch("/api/hotels", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        images: images.join(","),
         roomCategories: namedRows.map((r) => ({
           name: r.name,
           totalRooms: r.totalRooms || "1",
@@ -146,7 +166,7 @@ export function HotelForm() {
     router.refresh();
   }
 
-  const previewImage = form.imageUrl.trim() || SAMPLE_IMAGE;
+  const previewImage = images[0] ?? SAMPLE_IMAGE;
   const priceNumber = Number(form.pricePerNight) || 0;
 
   return (
@@ -259,87 +279,91 @@ export function HotelForm() {
         </div>
 
         <div>
-          <div className="mb-2 flex items-center gap-1">
-            <span className="field-label mb-0">Photo</span>
-            <div className="ml-auto flex rounded-md border border-line text-xs">
-              <button
-                type="button"
-                onClick={() => { setImageMode("upload"); setUploadError(""); }}
-                className={`rounded-l-md px-3 py-1 transition-colors ${
-                  imageMode === "upload"
-                    ? "bg-ink text-white"
-                    : "text-slate hover:bg-line"
-                }`}
-              >
-                Upload
-              </button>
-              <button
-                type="button"
-                onClick={() => { setImageMode("url"); setUploadError(""); }}
-                className={`rounded-r-md px-3 py-1 transition-colors ${
-                  imageMode === "url"
-                    ? "bg-ink text-white"
-                    : "text-slate hover:bg-line"
-                }`}
-              >
-                URL
-              </button>
-            </div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="field-label mb-0">Photos</span>
+            {images.length > 0 && (
+              <span className="text-xs text-slate">{images.length} added</span>
+            )}
           </div>
 
-          {imageMode === "upload" ? (
-            <div>
-              <input
-                ref={fileInputRef}
-                id="imageFile"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="sr-only"
-                onChange={handleFileChange}
-              />
-              <label
-                htmlFor="imageFile"
-                className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
-                  uploading
-                    ? "border-line bg-line/40 cursor-wait"
-                    : form.imageUrl
-                    ? "border-emerald-400 bg-emerald-50"
-                    : "border-line hover:border-ink/30 hover:bg-line/30"
-                }`}
-              >
-                {uploading ? (
-                  <span className="text-sm text-slate">Uploading…</span>
-                ) : form.imageUrl ? (
-                  <>
-                    <svg className="h-5 w-5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm text-emerald-700">Image uploaded — click to replace</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-8 w-8 text-slate" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                    </svg>
-                    <span className="text-sm text-slate">
-                      Click to upload <span className="font-medium text-ink">or drag and drop</span>
-                    </span>
-                    <span className="text-xs text-slate">JPEG, PNG, WebP, GIF · max 5 MB</span>
-                  </>
-                )}
-              </label>
-              {uploadError && <p className="field-error mt-1">{uploadError}</p>}
-            </div>
-          ) : (
+          <input
+            ref={fileInputRef}
+            id="imageFiles"
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="sr-only"
+            onChange={handleFilesChange}
+          />
+          <label
+            htmlFor="imageFiles"
+            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+              uploading
+                ? "border-line bg-line/40 cursor-wait"
+                : "border-line hover:border-ink/30 hover:bg-line/30"
+            }`}
+          >
+            {uploading ? (
+              <span className="text-sm text-slate">Uploading…</span>
+            ) : (
+              <>
+                <svg className="h-8 w-8 text-slate" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                </svg>
+                <span className="text-sm text-slate">
+                  Click to upload <span className="font-medium text-ink">or drag and drop</span> —
+                  add as many as you like
+                </span>
+                <span className="text-xs text-slate">JPEG, PNG, WebP, GIF · max 5 MB each</span>
+              </>
+            )}
+          </label>
+          {uploadError && <p className="field-error mt-1">{uploadError}</p>}
+
+          <div className="mt-3 flex gap-2">
             <input
-              id="imageUrl"
               className="field-input"
-              value={form.imageUrl}
-              onChange={(e) => update("imageUrl", e.target.value)}
-              placeholder="https://…"
+              value={imageUrlInput}
+              onChange={(e) => setImageUrlInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addImageUrl();
+                }
+              }}
+              placeholder="Or paste an image URL"
             />
+            <Button type="button" variant="ghost" onClick={addImageUrl}>
+              Add
+            </Button>
+          </div>
+
+          {images.length > 0 && (
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {images.map((url, i) => (
+                <div
+                  key={i}
+                  className="group relative aspect-square overflow-hidden rounded-md border border-line bg-line"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  {i === 0 && (
+                    <span className="absolute left-1 top-1 rounded bg-ink/80 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                      Cover
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs text-white opacity-0 transition group-hover:opacity-100"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
-          {errors.imageUrl && <p className="field-error">{errors.imageUrl[0]}</p>}
+          {errors.images && <p className="field-error mt-1">{errors.images[0]}</p>}
         </div>
 
         <div>

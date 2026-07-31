@@ -13,21 +13,6 @@ export function Navbar({ user }: Props) {
   const [isPending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
 
-  async function switchRole() {
-    const next = user?.role === "SELLER" ? "BUYER" : "SELLER";
-    setBusy(true);
-    await fetch("/api/session", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: next }),
-    });
-    setBusy(false);
-    startTransition(() => {
-      router.push(next === "SELLER" ? "/seller" : "/browse");
-      router.refresh();
-    });
-  }
-
   async function signOut() {
     setBusy(true);
     await fetch("/api/session", { method: "DELETE" });
@@ -87,15 +72,6 @@ export function Navbar({ user }: Props) {
               </span>
             </span>
 
-            {user.role !== "ADMIN" && (
-              <button
-                onClick={switchRole}
-                disabled={busy || isPending}
-                className="ml-1 rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-accent-deep disabled:opacity-50"
-              >
-                {user.role === "SELLER" ? "Switch to booking" : "Switch to hosting"}
-              </button>
-            )}
             <button
               onClick={signOut}
               disabled={busy || isPending}
@@ -105,12 +81,26 @@ export function Navbar({ user }: Props) {
             </button>
           </div>
         ) : (
-          <Link
-            href="/"
-            className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-deep"
-          >
-            Get started
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/browse"
+              className="hidden rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-paper sm:inline-block"
+            >
+              Browse stays
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-paper"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/#get-started"
+              className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-deep"
+            >
+              Become a host
+            </Link>
+          </div>
         )}
       </nav>
     </header>
