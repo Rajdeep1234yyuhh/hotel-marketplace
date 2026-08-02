@@ -33,23 +33,16 @@ export async function POST(req: Request) {
   }
 
   // Always price on the server — never trust a client-supplied total.
-  let nightlyRate = hotel.pricePerNight;
-  let resolvedRoomCategoryId: string | null = null;
-
-  if (roomCategoryId) {
-    const category = await findRoomCategoryById(roomCategoryId);
-    if (!category || category.hotelId !== hotelId) {
-      return NextResponse.json(
-        { error: "Selected room category is invalid" },
-        { status: 400 }
-      );
-    }
-    nightlyRate = category.pricePerNight;
-    resolvedRoomCategoryId = category.id;
+  const category = await findRoomCategoryById(roomCategoryId);
+  if (!category || category.hotelId !== hotelId) {
+    return NextResponse.json(
+      { error: "Selected room category is invalid" },
+      { status: 400 }
+    );
   }
 
   const nights = nightsBetween(checkIn, checkOut);
-  const total = nights * nightlyRate;
+  const total = nights * category.pricePerNight;
 
   // Reuse an existing account if this email already has one (keeping
   // whatever role it already has — never downgrade a SELLER/ADMIN just
@@ -71,7 +64,7 @@ export async function POST(req: Request) {
     nights,
     total,
     mealPlan,
-    roomCategoryId: resolvedRoomCategoryId,
+    roomCategoryId: category.id,
   });
 
   return NextResponse.json({ booking, hotelName: hotel.name }, { status: 201 });

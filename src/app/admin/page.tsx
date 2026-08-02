@@ -76,10 +76,7 @@ export default async function AdminDashboard() {
             </thead>
             <tbody className="divide-y divide-line">
               {hotels.map((h) => {
-                const rooms =
-                  h.roomCategories.length > 0
-                    ? h.roomCategories.reduce((s, rc) => s + rc.totalRooms, 0)
-                    : h.roomsTotal;
+                const rooms = h.roomCategories.reduce((s, rc) => s + rc.totalRooms, 0);
                 return (
                   <tr key={h.id} className="transition hover:bg-paper/50">
                     <td className="px-4 py-4">

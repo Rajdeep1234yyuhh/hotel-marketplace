@@ -15,11 +15,16 @@ export default async function SellerDashboard() {
   const bookingCounts = await bookingCountsByHotel();
   const ownedHotels = await listHotels({ ownerId: session.userId });
   const hotels = await Promise.all(
-    ownedHotels.map(async (h) => ({
-      ...h,
-      _count: { bookings: bookingCounts[h.id] ?? 0 },
-      roomCategories: await roomCategoriesForHotel(h.id),
-    }))
+    ownedHotels.map(async (h) => {
+      const roomCategories = await roomCategoriesForHotel(h.id);
+      const prices = roomCategories.map((rc) => rc.pricePerNight);
+      return {
+        ...h,
+        _count: { bookings: bookingCounts[h.id] ?? 0 },
+        roomCategories,
+        startingPrice: prices.length > 0 ? Math.min(...prices) : 0,
+      };
+    })
   );
 
   const totalBookings = hotels.reduce((sum, h) => sum + h._count.bookings, 0);
@@ -109,7 +114,7 @@ export default async function SellerDashboard() {
                                 <li key={rc.id}>
                                   {rc.name} — {rc.totalRooms}{" "}
                                   {rc.totalRooms === 1 ? "room" : "rooms"} ·{" "}
-                                  {formatMoney(rc.pricePerNight, h.currency)}/night
+                                  {formatMoney(rc.pricePerNight)}/night
                                 </li>
                               ))}
                             </ul>
@@ -122,8 +127,14 @@ export default async function SellerDashboard() {
                     {h.city}, {h.country}
                   </td>
                   <td className="px-4 py-4 text-ink">
-                    {formatMoney(h.pricePerNight, h.currency)}
-                    <span className="text-slate"> / night</span>
+                    {h.startingPrice > 0 ? (
+                      <>
+                        {formatMoney(h.startingPrice)}
+                        <span className="text-slate"> / night</span>
+                      </>
+                    ) : (
+                      <span className="text-slate">—</span>
+                    )}
                   </td>
                   <td className="hidden px-4 py-4 text-ink md:table-cell">
                     {h._count.bookings}

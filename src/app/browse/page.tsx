@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { listHotels } from "@/lib/db";
+import { listHotels, roomCategoriesForHotel } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { HotelCard } from "@/components/HotelCard";
 import { SearchBar } from "@/components/SearchBar";
@@ -15,7 +15,14 @@ export default async function BrowsePage({
   const q = searchParams.q?.trim();
   const session = getSession();
 
-  const hotels = await listHotels({ published: true, q: q || undefined });
+  const publishedHotels = await listHotels({ published: true, q: q || undefined });
+  const hotels = await Promise.all(
+    publishedHotels.map(async (h) => {
+      const categories = await roomCategoriesForHotel(h.id);
+      const prices = categories.map((c) => c.pricePerNight);
+      return { ...h, startingPrice: prices.length > 0 ? Math.min(...prices) : 0 };
+    })
+  );
 
   return (
     <div className="container-page py-10">

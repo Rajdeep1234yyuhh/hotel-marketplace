@@ -24,9 +24,7 @@ export default async function HotelDetailPage({
     roomCategories,
   };
 
-  const amenities = toList(hotel.amenities);
-  const mealPlans = mealPlansToList(hotel.mealPlans);
-  const photos = toList(hotel.images);
+  const totalRooms = hotel.roomCategories.reduce((sum, rc) => sum + rc.totalRooms, 0);
   const hasCoordinates = hotel.latitude != null && hotel.longitude != null;
 
   return (
@@ -41,25 +39,11 @@ export default async function HotelDetailPage({
       <div className="mt-4 overflow-hidden rounded-card border border-line shadow-soft">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={photos[0]}
+          src={hotel.coverImage}
           alt={hotel.name}
           className="h-72 w-full object-cover sm:h-96"
         />
       </div>
-
-      {photos.length > 1 && (
-        <div className="mt-3 flex gap-2 overflow-x-auto">
-          {photos.slice(1).map((p, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={i}
-              src={p}
-              alt={hotel.name}
-              className="h-20 w-28 flex-none rounded-md border border-line object-cover"
-            />
-          ))}
-        </div>
-      )}
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
         <div>
@@ -79,45 +63,12 @@ export default async function HotelDetailPage({
               </span>
             )}
             <span>Hosted by {hotel.owner.name}</span>
-            <span>{hotel.roomsTotal} rooms</span>
+            <span>{totalRooms} rooms</span>
           </div>
 
           <p className="mt-6 max-w-prose leading-relaxed text-ink/80">
             {hotel.description}
           </p>
-
-          {amenities.length > 0 && (
-            <div className="mt-8">
-              <h2 className="font-display text-xl font-bold text-ink">What this place offers</h2>
-              <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {amenities.map((a) => (
-                  <li
-                    key={a}
-                    className="flex items-center gap-3 rounded-lg border border-line bg-white px-4 py-3 text-sm text-ink"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                    {a}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {mealPlans.length > 0 && (
-            <div className="mt-8">
-              <h2 className="font-display text-xl font-bold text-ink">Meal plans</h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {mealPlans.map((plan) => (
-                  <span
-                    key={plan}
-                    className="rounded-full border border-line bg-white px-3 py-1.5 text-sm text-ink"
-                  >
-                    {plan}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
 
           {hotel.roomCategories.length > 0 && (
             <div className="mt-8">
@@ -125,6 +76,8 @@ export default async function HotelDetailPage({
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {hotel.roomCategories.map((rc) => {
                   const photos = toList(rc.photos);
+                  const amenities = toList(rc.amenities);
+                  const mealPlans = toList(rc.mealPlans);
                   return (
                     <div
                       key={rc.id}
@@ -144,7 +97,7 @@ export default async function HotelDetailPage({
                         <div className="flex items-baseline justify-between gap-2">
                           <h3 className="font-display text-lg font-bold text-ink">{rc.name}</h3>
                           <span className="whitespace-nowrap text-sm font-bold text-ink">
-                            {formatMoney(rc.pricePerNight, hotel.currency)}
+                            {formatMoney(rc.pricePerNight)}
                             <span className="text-xs font-normal text-slate"> /night</span>
                           </span>
                         </div>
@@ -154,6 +107,33 @@ export default async function HotelDetailPage({
                         {rc.description && (
                           <p className="mt-2 text-sm text-ink/80">{rc.description}</p>
                         )}
+
+                        {amenities.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {amenities.map((a) => (
+                              <span
+                                key={a}
+                                className="rounded-full border border-line bg-paper px-2 py-0.5 text-xs text-ink"
+                              >
+                                {a}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {mealPlans.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {mealPlans.map((plan) => (
+                              <span
+                                key={plan}
+                                className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent-deep"
+                              >
+                                {plan}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
                         {photos.length > 1 && (
                           <div className="mt-3 flex gap-2 overflow-x-auto">
                             {photos.slice(1).map((p, i) => (
@@ -229,14 +209,12 @@ export default async function HotelDetailPage({
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <BookingForm
             hotelId={hotel.id}
-            pricePerNight={hotel.pricePerNight}
-            currency={hotel.currency}
-            mealPlans={mealPlans}
             roomCategories={hotel.roomCategories.map((rc) => ({
               id: rc.id,
               name: rc.name,
               pricePerNight: rc.pricePerNight,
               totalRooms: rc.totalRooms,
+              mealPlans: mealPlansToList(rc.mealPlans),
             }))}
           />
         </aside>

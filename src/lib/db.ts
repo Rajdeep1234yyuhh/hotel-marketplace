@@ -25,6 +25,8 @@ export type RoomCategory = {
   totalRooms: number;
   pricePerNight: number;
   description: string;
+  amenities: string;
+  mealPlans: string;
   photos: string;
   createdAt: string;
 };
@@ -35,12 +37,8 @@ export type Hotel = {
   city: string;
   country: string;
   description: string;
-  pricePerNight: number;
-  currency: string;
   rating: number;
-  images: string;
-  amenities: string;
-  roomsTotal: number;
+  coverImage: string;
   published: boolean;
   contactEmail: string;
   contactPhone: string;
@@ -50,7 +48,6 @@ export type Hotel = {
   bankName: string;
   latitude: number | null;
   longitude: number | null;
-  mealPlans: string;
   ownerId: string;
   createdAt: string;
   updatedAt: string;

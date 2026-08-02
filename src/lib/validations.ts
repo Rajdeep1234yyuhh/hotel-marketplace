@@ -9,6 +9,8 @@ export const roomCategorySchema = z.object({
   totalRooms: z.coerce.number().int().positive("Must be at least 1"),
   pricePerNight: z.coerce.number().int().positive("Price must be greater than 0"),
   description: z.string().trim().max(500).default(""),
+  amenities: z.string().trim().default(""),
+  mealPlans: z.string().trim().default(""),
   photos: z.string().trim().default(""),
 });
 
@@ -18,23 +20,7 @@ export const createHotelSchema = z
     city: z.string().trim().min(2).max(80),
     country: z.string().trim().min(2).max(80),
     description: z.string().trim().min(20, "Add at least a short description").max(2000),
-    pricePerNight: z.coerce.number().int().positive("Price must be greater than 0"),
-    currency: z.string().trim().default("INR"),
-    images: z
-      .string()
-      .trim()
-      .min(1, "Add at least one photo")
-      .refine(
-        (v) =>
-          v
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean)
-            .every((u) => /^https?:\/\//.test(u)),
-        "Enter valid photo URLs"
-      ),
-    amenities: z.string().trim().default(""),
-    roomsTotal: z.coerce.number().int().positive().default(1),
+    coverImage: z.string().trim().url("Add a cover photo"),
 
     contactEmail: z.string().trim().email("Enter a valid contact email"),
     contactPhone: z
@@ -58,9 +44,7 @@ export const createHotelSchema = z
       z.coerce.number().min(-180).max(180).optional()
     ),
 
-    mealPlans: z.string().trim().default(""),
-
-    roomCategories: z.array(roomCategorySchema).max(20).default([]),
+    roomCategories: z.array(roomCategorySchema).min(1, "Add at least one room category").max(20),
   })
   .refine((d) => (d.latitude === undefined) === (d.longitude === undefined), {
     message: "Provide both latitude and longitude, or leave both blank",
@@ -76,11 +60,7 @@ export const createBookingSchema = z
     checkOut: z.string().min(1, "Choose a check-out date"),
     guests: z.coerce.number().int().min(1).max(20),
     mealPlan: z.string().trim().min(1, "Choose a meal plan").default("Room Only"),
-    roomCategoryId: z
-      .string()
-      .trim()
-      .optional()
-      .transform((v) => (v ? v : undefined)),
+    roomCategoryId: z.string().trim().min(1, "Select a room category"),
   })
   .refine((d) => new Date(d.checkOut) > new Date(d.checkIn), {
     message: "Check-out must be after check-in",

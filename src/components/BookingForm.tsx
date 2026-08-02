@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { formatMoney, nightsBetween } from "@/lib/validations";
@@ -10,13 +10,11 @@ type RoomCategoryOption = {
   name: string;
   pricePerNight: number;
   totalRooms: number;
+  mealPlans: string[];
 };
 
 type Props = {
   hotelId: string;
-  pricePerNight: number;
-  currency: string;
-  mealPlans: string[];
   roomCategories: RoomCategoryOption[];
 };
 
@@ -24,29 +22,31 @@ function isoToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function BookingForm({
-  hotelId,
-  pricePerNight,
-  currency,
-  mealPlans,
-  roomCategories,
-}: Props) {
+export function BookingForm({ hotelId, roomCategories }: Props) {
   const router = useRouter();
   const [checkIn, setCheckIn] = useState(isoToday());
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(2);
   const [guestName, setGuestName] = useState("");
   const [email, setEmail] = useState("");
-  const [mealPlan, setMealPlan] = useState(mealPlans[0] ?? "Room Only");
   const [roomCategoryId, setRoomCategoryId] = useState(roomCategories[0]?.id ?? "");
+  const selectedCategory = roomCategories.find((c) => c.id === roomCategoryId);
+  const [mealPlan, setMealPlan] = useState(selectedCategory?.mealPlans[0] ?? "Room Only");
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState<{ nights: number; total: number } | null>(
     null
   );
 
-  const selectedCategory = roomCategories.find((c) => c.id === roomCategoryId);
-  const effectiveRate = selectedCategory?.pricePerNight ?? pricePerNight;
+  // Meal plan options depend on which room category is selected — reset to
+  // that category's first option whenever the selection changes.
+  useEffect(() => {
+    setMealPlan(selectedCategory?.mealPlans[0] ?? "Room Only");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomCategoryId]);
+
+  const effectiveRate = selectedCategory?.pricePerNight ?? 0;
+  const availableMealPlans = selectedCategory?.mealPlans ?? ["Room Only"];
 
   const nights =
     checkIn && checkOut && new Date(checkOut) > new Date(checkIn)
@@ -68,7 +68,7 @@ export function BookingForm({
         checkOut,
         guests,
         mealPlan,
-        roomCategoryId: roomCategoryId || undefined,
+        roomCategoryId,
       }),
     });
 
@@ -84,6 +84,16 @@ export function BookingForm({
     router.refresh();
   }
 
+  if (roomCategories.length === 0) {
+    return (
+      <div className="rounded-card border border-line bg-white p-6 shadow-lift">
+        <p className="text-sm text-slate">
+          This property doesn&apos;t have any bookable room categories yet.
+        </p>
+      </div>
+    );
+  }
+
   if (confirmed) {
     return (
       <div className="rounded-card border border-line bg-white p-6 shadow-lift">
@@ -93,7 +103,7 @@ export function BookingForm({
         <h3 className="font-display text-xl font-bold text-ink">Booking confirmed</h3>
         <p className="mt-1 text-sm text-slate">
           {confirmed.nights} {confirmed.nights === 1 ? "night" : "nights"} ·{" "}
-          {formatMoney(confirmed.total, currency)} total. A confirmation has been
+          {formatMoney(confirmed.total)} total. A confirmation has been
           recorded for {email}.
         </p>
         <Button
@@ -114,31 +124,29 @@ export function BookingForm({
     <div className="rounded-card border border-line bg-white p-6 shadow-lift">
       <div className="flex items-baseline gap-1">
         <span className="font-display text-2xl font-bold text-ink">
-          {formatMoney(effectiveRate, currency)}
+          {formatMoney(effectiveRate)}
         </span>
         <span className="text-sm text-slate">/ night</span>
       </div>
 
-      {roomCategories.length > 0 && (
-        <div className="mt-5">
-          <label htmlFor="roomCategory" className="field-label">
-            Room category
-          </label>
-          <select
-            id="roomCategory"
-            className="field-input"
-            value={roomCategoryId}
-            onChange={(e) => setRoomCategoryId(e.target.value)}
-          >
-            {roomCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} · {formatMoney(c.pricePerNight, currency)}/night · {c.totalRooms}{" "}
-                {c.totalRooms === 1 ? "room" : "rooms"}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      <div className="mt-5">
+        <label htmlFor="roomCategory" className="field-label">
+          Room category
+        </label>
+        <select
+          id="roomCategory"
+          className="field-input"
+          value={roomCategoryId}
+          onChange={(e) => setRoomCategoryId(e.target.value)}
+        >
+          {roomCategories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name} · {formatMoney(c.pricePerNight)}/night · {c.totalRooms}{" "}
+              {c.totalRooms === 1 ? "room" : "rooms"}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="mt-3">
         <label htmlFor="mealPlan" className="field-label">
@@ -150,7 +158,7 @@ export function BookingForm({
           value={mealPlan}
           onChange={(e) => setMealPlan(e.target.value)}
         >
-          {mealPlans.map((plan) => (
+          {availableMealPlans.map((plan) => (
             <option key={plan} value={plan}>
               {plan}
             </option>
@@ -237,14 +245,14 @@ export function BookingForm({
         <div className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
           <div className="flex justify-between text-slate">
             <span>
-              {formatMoney(effectiveRate, currency)} × {nights}{" "}
+              {formatMoney(effectiveRate)} × {nights}{" "}
               {nights === 1 ? "night" : "nights"}
             </span>
-            <span>{formatMoney(total, currency)}</span>
+            <span>{formatMoney(total)}</span>
           </div>
           <div className="flex justify-between text-base font-bold text-ink">
             <span>Total</span>
-            <span>{formatMoney(total, currency)}</span>
+            <span>{formatMoney(total)}</span>
           </div>
         </div>
       )}

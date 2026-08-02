@@ -1,15 +1,14 @@
 import Link from "next/link";
-import { formatMoney, toList } from "@/lib/validations";
+import { formatMoney } from "@/lib/validations";
 
 export type HotelCardData = {
   id: string;
   name: string;
   city: string;
   country: string;
-  pricePerNight: number;
-  currency: string;
+  startingPrice: number;
   rating: number;
-  images: string;
+  coverImage: string;
 };
 
 function ratingLabel(rating: number) {
@@ -27,7 +26,6 @@ export function HotelCard({
   hotel: HotelCardData;
   href: string;
 }) {
-  const cover = toList(hotel.images)[0];
   return (
     <Link
       href={href}
@@ -36,7 +34,7 @@ export function HotelCard({
       <div className="relative aspect-[4/3] overflow-hidden bg-line">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={cover}
+          src={hotel.coverImage}
           alt={hotel.name}
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
@@ -72,7 +70,7 @@ export function HotelCard({
             <p className="text-[11px] text-slate">Starting from</p>
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-bold text-ink">
-                {formatMoney(hotel.pricePerNight, hotel.currency)}
+                {formatMoney(hotel.startingPrice)}
               </span>
               <span className="text-xs text-slate">/ night</span>
             </div>
