@@ -89,12 +89,6 @@ export function Navbar({ user }: Props) {
               Browse stays
             </Link>
             <Link
-              href="/login"
-              className="rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-paper"
-            >
-              Log in
-            </Link>
-            <Link
               href="/#get-started"
               className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-deep"
             >
