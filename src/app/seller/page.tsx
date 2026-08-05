@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function SellerDashboard() {
   const session = getSession();
   if (!session) redirect("/");
-  if (session.role !== "SELLER") redirect("/browse");
+  if (session.role !== "SELLER" && session.role !== "ADMIN") redirect("/browse");
 
   const bookingCounts = await bookingCountsByHotel();
   const ownedHotels = await listHotels({ ownerId: session.userId });

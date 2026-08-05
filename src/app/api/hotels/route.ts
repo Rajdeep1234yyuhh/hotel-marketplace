@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   if (!session) {
     return NextResponse.json({ error: "Sign in to continue" }, { status: 401 });
   }
-  if (session.role !== "SELLER") {
+  if (session.role !== "SELLER" && session.role !== "ADMIN") {
     return NextResponse.json(
       { error: "Switch to a host account to list a property" },
       { status: 403 }

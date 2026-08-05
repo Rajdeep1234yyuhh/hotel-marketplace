@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
-import { findHotelById, roomCategoriesForHotel, updateHotelPublished, deleteHotel } from "@/lib/db";
+import {
+  findHotelById,
+  roomCategoriesForHotel,
+  updateHotelPublished,
+  updateHotel,
+  deleteHotel,
+} from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { updateHotelSchema } from "@/lib/validations";
 
 export async function GET(
   _req: Request,
@@ -37,11 +44,21 @@ export async function PATCH(
   }
 
   const body = await req.json().catch(() => null);
-  if (typeof body?.published !== "boolean") {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+
+  if (typeof body?.published === "boolean") {
+    const updated = await updateHotelPublished(params.id, body.published);
+    return NextResponse.json({ hotel: updated });
   }
 
-  const updated = await updateHotelPublished(params.id, body.published);
+  const parsed = updateHotelSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.flatten().fieldErrors },
+      { status: 400 }
+    );
+  }
+
+  const updated = await updateHotel(params.id, parsed.data);
   return NextResponse.json({ hotel: updated });
 }
 

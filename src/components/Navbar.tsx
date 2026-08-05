@@ -43,7 +43,7 @@ export function Navbar({ user }: Props) {
             >
               Browse stays
             </Link>
-            {user.role === "SELLER" && (
+            {(user.role === "SELLER" || user.role === "ADMIN") && (
               <Link
                 href="/seller"
                 className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-slate transition hover:bg-paper hover:text-ink sm:inline-block"

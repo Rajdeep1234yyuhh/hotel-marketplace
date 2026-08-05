@@ -3,28 +3,28 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { HotelForm } from "@/components/HotelForm";
 
-export default function NewHotelPage() {
+export default function AdminNewHotelPage() {
   const session = getSession();
   if (!session) redirect("/");
-  if (session.role !== "SELLER" && session.role !== "ADMIN") redirect("/browse");
+  if (session.role !== "ADMIN") redirect("/browse");
 
   return (
     <div className="container-page py-10">
-      <Link href="/seller" className="text-sm text-slate transition hover:text-ink">
-        ← Back to dashboard
+      <Link href="/admin" className="text-sm text-slate transition hover:text-ink">
+        ← Back to admin overview
       </Link>
       <div className="mt-4 border-b border-line pb-8">
-        <p className="eyebrow">New listing</p>
+        <p className="eyebrow">Super admin</p>
         <h1 className="mt-2 font-display text-4xl font-bold tracking-tight text-ink">
           Add a property
         </h1>
         <p className="mt-2 max-w-prose text-slate">
-          Fill in the details and publish. Your listing appears in the marketplace
-          for travellers immediately.
+          Create a listing directly. It&apos;s published immediately and owned by
+          your admin account until you reassign it.
         </p>
       </div>
       <div className="mt-8">
-        <HotelForm />
+        <HotelForm redirectTo="/admin" />
       </div>
     </div>
   );

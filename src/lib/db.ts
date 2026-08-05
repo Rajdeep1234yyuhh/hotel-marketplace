@@ -156,6 +156,14 @@ export async function createUser(input: { name: string; email: string; role: Rol
   return { id, ...data };
 }
 
+export async function deleteUser(id: string): Promise<boolean> {
+  const ref = usersCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return false;
+  await ref.delete();
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // Room categories
 // ---------------------------------------------------------------------------
@@ -238,6 +246,18 @@ export async function updateHotelPublished(id: string, published: boolean): Prom
   const updatedAt = nowIso();
   await ref.update({ published, updatedAt });
   return { ...fromDoc<Hotel>(doc), published, updatedAt };
+}
+
+export async function updateHotel(
+  id: string,
+  patch: Partial<Pick<Hotel, "name" | "city" | "country" | "description" | "coverImage">>
+): Promise<Hotel | null> {
+  const ref = hotelsCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const updatedAt = nowIso();
+  await ref.update({ ...patch, updatedAt });
+  return { ...fromDoc<Hotel>(doc), ...patch, updatedAt };
 }
 
 export async function deleteHotel(id: string): Promise<boolean> {

@@ -17,7 +17,7 @@ const SAMPLE_IMAGE =
 // Keep in sync with MAX_BYTES in src/app/api/upload/route.ts.
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
-export function HotelForm() {
+export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
   const router = useRouter();
   const [form, setForm] = useState({
     name: "",
@@ -132,7 +132,7 @@ export function HotelForm() {
       return;
     }
 
-    router.push("/seller");
+    router.push(redirectTo);
     router.refresh();
   }
 
@@ -448,7 +448,7 @@ export function HotelForm() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => router.push("/seller")}
+            onClick={() => router.push(redirectTo)}
             type="button"
           >
             Cancel
