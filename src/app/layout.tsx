@@ -42,9 +42,14 @@ export default async function RootLayout({
         />
         <main className="min-h-[calc(100dvh-4rem)]">{children}</main>
         <footer className="border-t border-line">
-          <div className="container-page flex flex-col gap-1 py-8 text-sm text-slate sm:flex-row sm:items-center sm:justify-between">
+          <div className="container-page flex flex-col gap-3 py-8 text-sm text-slate sm:flex-row sm:items-center sm:justify-between">
             <span className="font-display text-base font-bold text-ink">Travel Grid India</span>
-            <span>A two-sided demo marketplace built with Next.js.</span>
+            <a
+              href="mailto:support@travelgridindia.com"
+              className="transition hover:text-ink"
+            >
+              support@travelgridindia.com
+            </a>
           </div>
         </footer>
       </body>
