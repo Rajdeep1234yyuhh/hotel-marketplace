@@ -85,6 +85,56 @@ export const createBookingSchema = z
     path: ["checkOut"],
   });
 
+export const itineraryDaySchema = z.object({
+  dayNumber: z.coerce.number().int().positive(),
+  title: z.string().trim().min(2, "Title is too short").max(120),
+  description: z.string().trim().max(1000).default(""),
+});
+
+export const createTourPackageSchema = z.object({
+  title: z.string().trim().min(3, "Title is too short").max(120),
+  destination: z.string().trim().min(2, "Add a destination").max(120),
+  description: z.string().trim().min(20, "Add at least a short description").max(2000),
+  durationDays: z.coerce.number().int().positive("Must be at least 1"),
+  durationNights: z.coerce.number().int().min(0),
+  pricePerPerson: z.coerce.number().int().positive("Price must be greater than 0"),
+  coverImage: z.string().trim().url("Add a cover photo"),
+  photos: z.string().trim().default(""),
+  inclusions: z.string().trim().default(""),
+  exclusions: z.string().trim().default(""),
+  highlights: z.string().trim().default(""),
+
+  contactEmail: z.string().trim().email("Enter a valid contact email"),
+  contactPhone: z
+    .string()
+    .trim()
+    .min(7, "Enter a valid contact number")
+    .max(20)
+    .regex(/^[0-9+\-\s()]+$/, "Enter a valid contact number"),
+
+  bankAccountHolder: z.string().trim().min(2, "Enter the account holder name").max(120),
+  bankAccountNumber: z.string().trim().min(6, "Enter a valid account number").max(34),
+  bankIfsc: z.string().trim().min(4, "Enter a valid bank code").max(20),
+  bankName: z.string().trim().min(2, "Enter the bank name").max(120),
+
+  itinerary: z.array(itineraryDaySchema).min(1, "Add at least one itinerary day").max(30),
+});
+
+export const updateTourPackageSchema = z.object({
+  title: z.string().trim().min(3, "Title is too short").max(120).optional(),
+  destination: z.string().trim().min(2, "Add a destination").max(120).optional(),
+  description: z.string().trim().min(20, "Add at least a short description").max(2000).optional(),
+  coverImage: z.string().trim().url("Add a valid photo URL").optional(),
+});
+
+export const createPackageBookingSchema = z.object({
+  packageId: z.string().min(1),
+  guestName: z.string().trim().min(2, "Enter the guest name").max(80),
+  email: z.string().trim().email("Enter a valid email"),
+  travelDate: z.string().min(1, "Choose a travel date"),
+  travelers: z.coerce.number().int().min(1).max(20),
+});
+
 export function nightsBetween(checkIn: string | Date, checkOut: string | Date) {
   const a = new Date(checkIn).getTime();
   const b = new Date(checkOut).getTime();
@@ -112,7 +162,14 @@ export function toList(value: string): string[] {
 
 export const amenitiesToList = toList;
 
-export const DEFAULT_MEAL_PLANS = ["Room Only", "Breakfast Included", "Half Board", "Full Board"];
+export const MEAL_PLAN_OPTIONS = [
+  "Breakfast Included",
+  "Lunch Included",
+  "Dinner Included",
+  "Half Board",
+  "Full Board",
+  "Room Only",
+];
 
 export function mealPlansToList(mealPlans: string): string[] {
   const list = toList(mealPlans);

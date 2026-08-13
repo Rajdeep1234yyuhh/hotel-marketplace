@@ -70,10 +70,60 @@ export type Booking = {
   createdAt: string;
 };
 
+export type ItineraryDay = {
+  id: string;
+  packageId: string;
+  dayNumber: number;
+  title: string;
+  description: string;
+  createdAt: string;
+};
+
+export type TourPackage = {
+  id: string;
+  title: string;
+  destination: string;
+  description: string;
+  durationDays: number;
+  durationNights: number;
+  pricePerPerson: number;
+  coverImage: string;
+  photos: string;
+  inclusions: string;
+  exclusions: string;
+  highlights: string;
+  published: boolean;
+  contactEmail: string;
+  contactPhone: string;
+  bankAccountHolder: string;
+  bankAccountNumber: string;
+  bankIfsc: string;
+  bankName: string;
+  ownerId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PackageBooking = {
+  id: string;
+  packageId: string;
+  guestId: string;
+  guestName: string;
+  email: string;
+  travelDate: string;
+  travelers: number;
+  total: number;
+  status: string;
+  createdAt: string;
+};
+
 const usersCol = () => getFirestoreDb().collection("users");
 const hotelsCol = () => getFirestoreDb().collection("hotels");
 const roomCategoriesCol = () => getFirestoreDb().collection("roomCategories");
 const bookingsCol = () => getFirestoreDb().collection("bookings");
+const tourPackagesCol = () => getFirestoreDb().collection("tourPackages");
+const itineraryDaysCol = () => getFirestoreDb().collection("itineraryDays");
+const packageBookingsCol = () => getFirestoreDb().collection("packageBookings");
 
 export function newId() {
   return randomUUID();
@@ -102,6 +152,9 @@ export async function resetDb() {
     deleteAll(roomCategoriesCol()),
     deleteAll(hotelsCol()),
     deleteAll(usersCol()),
+    deleteAll(packageBookingsCol()),
+    deleteAll(itineraryDaysCol()),
+    deleteAll(tourPackagesCol()),
   ]);
 }
 
@@ -299,6 +352,141 @@ export async function bookingCountsByHotel(): Promise<Record<string, number>> {
   for (const doc of snap.docs) {
     const hotelId = (doc.data() as Booking).hotelId;
     counts[hotelId] = (counts[hotelId] ?? 0) + 1;
+  }
+  return counts;
+}
+
+// ---------------------------------------------------------------------------
+// Itinerary days
+// ---------------------------------------------------------------------------
+
+export async function itineraryForPackage(packageId: string): Promise<ItineraryDay[]> {
+  const snap = await itineraryDaysCol().where("packageId", "==", packageId).get();
+  return snap.docs
+    .map((d) => fromDoc<ItineraryDay>(d))
+    .sort((a, b) => a.dayNumber - b.dayNumber);
+}
+
+// ---------------------------------------------------------------------------
+// Tour packages
+// ---------------------------------------------------------------------------
+
+export async function findTourPackageById(id: string): Promise<TourPackage | null> {
+  const doc = await tourPackagesCol().doc(id).get();
+  return doc.exists ? fromDoc<TourPackage>(doc) : null;
+}
+
+export async function listTourPackages(where?: {
+  ownerId?: string;
+  published?: boolean;
+  q?: string;
+}): Promise<TourPackage[]> {
+  let query: Query = tourPackagesCol();
+  if (where?.ownerId) query = query.where("ownerId", "==", where.ownerId);
+  if (where?.published !== undefined) query = query.where("published", "==", where.published);
+
+  const snap = await query.get();
+  let results = snap.docs
+    .map((d) => fromDoc<TourPackage>(d))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  if (where?.q) {
+    const q = where.q.toLowerCase();
+    results = results.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) || p.destination.toLowerCase().includes(q)
+    );
+  }
+  return results;
+}
+
+export async function createTourPackage(
+  input: Omit<TourPackage, "id" | "createdAt" | "updatedAt">,
+  itineraryInputs: Omit<ItineraryDay, "id" | "packageId" | "createdAt">[] = []
+): Promise<TourPackage & { itinerary: ItineraryDay[] }> {
+  const id = newId();
+  const now = nowIso();
+  const packageData = { ...input, createdAt: now, updatedAt: now };
+  await tourPackagesCol().doc(id).set(packageData);
+
+  const itinerary: ItineraryDay[] = [];
+  if (itineraryInputs.length > 0) {
+    const batch = getFirestoreDb().batch();
+    for (const day of itineraryInputs) {
+      const dayId = newId();
+      const dayData = { ...day, packageId: id, createdAt: nowIso() };
+      batch.set(itineraryDaysCol().doc(dayId), dayData);
+      itinerary.push({ id: dayId, ...dayData });
+    }
+    await batch.commit();
+  }
+
+  return { id, ...packageData, itinerary };
+}
+
+export async function updateTourPackagePublished(
+  id: string,
+  published: boolean
+): Promise<TourPackage | null> {
+  const ref = tourPackagesCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const updatedAt = nowIso();
+  await ref.update({ published, updatedAt });
+  return { ...fromDoc<TourPackage>(doc), published, updatedAt };
+}
+
+export async function updateTourPackage(
+  id: string,
+  patch: Partial<Pick<TourPackage, "title" | "destination" | "description" | "coverImage">>
+): Promise<TourPackage | null> {
+  const ref = tourPackagesCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const updatedAt = nowIso();
+  await ref.update({ ...patch, updatedAt });
+  return { ...fromDoc<TourPackage>(doc), ...patch, updatedAt };
+}
+
+export async function deleteTourPackage(id: string): Promise<boolean> {
+  const ref = tourPackagesCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return false;
+  await Promise.all([
+    deleteAll(itineraryDaysCol().where("packageId", "==", id)),
+    deleteAll(packageBookingsCol().where("packageId", "==", id)),
+  ]);
+  await ref.delete();
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Package bookings
+// ---------------------------------------------------------------------------
+
+export async function createPackageBooking(
+  input: Omit<PackageBooking, "id" | "createdAt" | "status">
+): Promise<PackageBooking> {
+  const id = newId();
+  const data = { ...input, status: "CONFIRMED", createdAt: nowIso() };
+  await packageBookingsCol().doc(id).set(data);
+  return { id, ...data };
+}
+
+export async function countPackageBookings(where?: { packageId?: string }): Promise<number> {
+  let query: Query = packageBookingsCol();
+  if (where?.packageId) query = query.where("packageId", "==", where.packageId);
+  const snap = await query.count().get();
+  return snap.data().count;
+}
+
+/** Map of packageId -> booking count, computed in one pass for dashboard listings. */
+export async function packageBookingCountsByPackage(): Promise<Record<string, number>> {
+  const snap = await packageBookingsCol().get();
+  const counts: Record<string, number> = {};
+  for (const doc of snap.docs) {
+    const packageId = (doc.data() as PackageBooking).packageId;
+    counts[packageId] = (counts[packageId] ?? 0) + 1;
   }
   return counts;
 }

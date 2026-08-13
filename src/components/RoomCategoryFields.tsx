@@ -2,11 +2,10 @@
 
 import { useRef, useState } from "react";
 import { prepareImageForUpload } from "@/lib/image-compression";
+import { toList, MEAL_PLAN_OPTIONS } from "@/lib/validations";
 
 // Keep in sync with MAX_BYTES in src/app/api/upload/route.ts.
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
-
-const MEAL_PLAN_SUGGESTIONS = ["Room Only", "Breakfast Included", "Half Board", "Full Board"];
 
 export type RoomCategoryDraft = {
   name: string;
@@ -82,6 +81,15 @@ export function RoomCategoryFields({ draft, onChange, onRemove, canRemove, fileI
     onChange({ photos: draft.photos.filter((_, pi) => pi !== i) });
   }
 
+  const selectedMealPlans = toList(draft.mealPlans);
+
+  function toggleMealPlan(plan: string) {
+    const next = selectedMealPlans.includes(plan)
+      ? selectedMealPlans.filter((p) => p !== plan)
+      : [...selectedMealPlans, plan];
+    onChange({ mealPlans: next.join(",") });
+  }
+
   return (
     <div className="rounded-lg border border-line p-4">
       <div className="flex items-start justify-between gap-2">
@@ -137,16 +145,27 @@ export function RoomCategoryFields({ draft, onChange, onRemove, canRemove, fileI
               placeholder="River view, Free Wi-Fi, Balcony"
             />
           </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className="field-label">
-              Meal plans <span className="text-slate">(comma separated)</span>
-            </label>
-            <input
-              className="field-input"
-              value={draft.mealPlans}
-              onChange={(e) => onChange({ mealPlans: e.target.value })}
-              placeholder={MEAL_PLAN_SUGGESTIONS.join(", ")}
-            />
+          <div className="col-span-2">
+            <label className="field-label">Meal plans</label>
+            <div className="flex flex-wrap gap-2">
+              {MEAL_PLAN_OPTIONS.map((plan) => {
+                const active = selectedMealPlans.includes(plan);
+                return (
+                  <button
+                    key={plan}
+                    type="button"
+                    onClick={() => toggleMealPlan(plan)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                      active
+                        ? "border-accent bg-accent/10 text-accent-deep"
+                        : "border-line text-slate hover:border-ink/30 hover:text-ink"
+                    }`}
+                  >
+                    {plan}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="col-span-2">

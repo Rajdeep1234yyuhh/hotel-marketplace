@@ -3,7 +3,13 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-export function SearchBar() {
+export function SearchBar({
+  action = "/browse",
+  placeholder = "Search by hotel, city or country",
+}: {
+  action?: string;
+  placeholder?: string;
+}) {
   const router = useRouter();
   const params = useSearchParams();
   const [value, setValue] = useState(params.get("q") ?? "");
@@ -11,7 +17,7 @@ export function SearchBar() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const q = value.trim();
-    router.push(q ? `/browse?q=${encodeURIComponent(q)}` : "/browse");
+    router.push(q ? `${action}?q=${encodeURIComponent(q)}` : action);
   }
 
   return (
@@ -19,9 +25,9 @@ export function SearchBar() {
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search by hotel, city or country"
+        placeholder={placeholder}
         className="field-input"
-        aria-label="Search stays"
+        aria-label="Search"
       />
       <button
         type="submit"

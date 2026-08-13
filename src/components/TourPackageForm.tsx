@@ -6,36 +6,37 @@ import { Button } from "@/components/ui/Button";
 import { formatMoney } from "@/lib/validations";
 import { prepareImageForUpload } from "@/lib/image-compression";
 import {
-  RoomCategoryFields,
-  emptyRoomCategory,
-  type RoomCategoryDraft,
-} from "@/components/RoomCategoryFields";
+  ItineraryDayFields,
+  emptyItineraryDay,
+  type ItineraryDayDraft,
+} from "@/components/ItineraryDayFields";
 
 const SAMPLE_IMAGE =
-  "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1200&q=80";
+  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1200&q=80";
 
 // Keep in sync with MAX_BYTES in src/app/api/upload/route.ts.
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
-export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
+export function TourPackageForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
   const router = useRouter();
   const [form, setForm] = useState({
-    name: "",
-    city: "",
-    country: "India",
+    title: "",
+    destination: "",
     description: "",
+    durationDays: "",
+    durationNights: "",
+    pricePerPerson: "",
+    inclusions: "",
+    exclusions: "",
+    highlights: "",
     contactEmail: "",
     contactPhone: "",
     bankAccountHolder: "",
     bankAccountNumber: "",
     bankIfsc: "",
     bankName: "",
-    latitude: "",
-    longitude: "",
   });
-  const [roomCategories, setRoomCategories] = useState<RoomCategoryDraft[]>([
-    { ...emptyRoomCategory },
-  ]);
+  const [itinerary, setItinerary] = useState<ItineraryDayDraft[]>([{ ...emptyItineraryDay }]);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -44,27 +45,25 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
   const [coverUploadError, setCoverUploadError] = useState("");
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
-  const [mapLink, setMapLink] = useState("");
-  const [mapLinkError, setMapLinkError] = useState("");
-  const [locating, setLocating] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [galleryUploadError, setGalleryUploadError] = useState("");
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function updateRoomCategory(index: number, patch: Partial<RoomCategoryDraft>) {
-    setRoomCategories((rows) =>
-      rows.map((row, i) => (i === index ? { ...row, ...patch } : row))
-    );
+  function updateDay(index: number, patch: Partial<ItineraryDayDraft>) {
+    setItinerary((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   }
 
-  function addRoomCategory() {
-    // New category goes on top, so it's immediately visible.
-    setRoomCategories((rows) => [{ ...emptyRoomCategory }, ...rows]);
+  function addDay() {
+    setItinerary((rows) => [...rows, { ...emptyItineraryDay }]);
   }
 
-  function removeRoomCategory(index: number) {
-    setRoomCategories((rows) => rows.filter((_, i) => i !== index));
+  function removeDay(index: number) {
+    setItinerary((rows) => rows.filter((_, i) => i !== index));
   }
 
   async function handleCoverFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -90,49 +89,45 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
     if (coverFileInputRef.current) coverFileInputRef.current.value = "";
   }
 
-  async function locateFromLink() {
-    const link = mapLink.trim();
-    if (!link) return;
-    setMapLinkError("");
-    setLocating(true);
+  async function handleGalleryFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setGalleryUploadError("");
+    setGalleryUploading(true);
     try {
-      const res = await fetch("/api/resolve-map-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: link }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Couldn't find a location in that link");
-      update("latitude", String(data.latitude));
-      update("longitude", String(data.longitude));
+      const uploaded: string[] = [];
+      for (const file of files) {
+        const prepared = await prepareImageForUpload(file);
+        if (prepared.size > MAX_UPLOAD_BYTES) {
+          throw new Error(
+            `"${file.name}" is too large even after compression — try a smaller photo.`
+          );
+        }
+        const fd = new FormData();
+        fd.append("file", prepared);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error ?? "Upload failed");
+        uploaded.push(data.url);
+      }
+      setPhotos((p) => [...p, ...uploaded]);
     } catch (err) {
-      setMapLinkError(
-        err instanceof Error ? err.message : "Couldn't find a location in that link"
-      );
+      setGalleryUploadError(err instanceof Error ? err.message : "Upload failed");
     }
-    setLocating(false);
+    setGalleryUploading(false);
+    if (galleryFileInputRef.current) galleryFileInputRef.current.value = "";
   }
 
-  function clearLocation() {
-    update("latitude", "");
-    update("longitude", "");
-    setMapLink("");
-    setMapLinkError("");
+  function removePhoto(i: number) {
+    setPhotos((p) => p.filter((_, pi) => pi !== i));
   }
 
   async function submit() {
     setErrors({});
 
-    const namedRows = roomCategories.filter((r) => r.name.trim());
-    if (namedRows.length === 0) {
-      setErrors({ _: ["Add at least one room category."] });
-      return;
-    }
-    const incomplete = namedRows.find((r) => !r.pricePerNight.trim());
-    if (incomplete) {
-      setErrors({
-        _: [`Add a price per night for “${incomplete.name.trim()}”.`],
-      });
+    const namedDays = itinerary.filter((d) => d.title.trim());
+    if (namedDays.length === 0) {
+      setErrors({ _: ["Add at least one itinerary day."] });
       return;
     }
     if (!coverImage) {
@@ -141,20 +136,17 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
     }
 
     setSubmitting(true);
-    const res = await fetch("/api/hotels", {
+    const res = await fetch("/api/packages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
         coverImage,
-        roomCategories: namedRows.map((r) => ({
-          name: r.name,
-          totalRooms: r.totalRooms || "1",
-          pricePerNight: r.pricePerNight,
-          description: r.description,
-          amenities: r.amenities,
-          mealPlans: r.mealPlans,
-          photos: r.photos.join(","),
+        photos: photos.join(","),
+        itinerary: namedDays.map((d, i) => ({
+          dayNumber: i + 1,
+          title: d.title,
+          description: d.description,
         })),
       }),
     });
@@ -171,54 +163,84 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
   }
 
   const previewImage = coverImage || SAMPLE_IMAGE;
-  const previewPrices = roomCategories
-    .filter((r) => r.name.trim() && r.pricePerNight.trim())
-    .map((r) => Number(r.pricePerNight))
-    .filter((n) => Number.isFinite(n) && n > 0);
-  const previewPrice = previewPrices.length > 0 ? Math.min(...previewPrices) : 0;
+  const previewPrice = Number(form.pricePerPerson);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr]">
       <div className="space-y-5">
         <div>
-          <label htmlFor="name" className="field-label">
-            Property name
+          <label htmlFor="title" className="field-label">
+            Package title
           </label>
           <input
-            id="name"
+            id="title"
             className="field-input"
-            value={form.name}
-            onChange={(e) => update("name", e.target.value)}
-            placeholder="The Brahmaputra Verandah"
+            value={form.title}
+            onChange={(e) => update("title", e.target.value)}
+            placeholder="Enchanting Kerala Backwaters"
           />
-          {errors.name && <p className="field-error">{errors.name[0]}</p>}
+          {errors.title && <p className="field-error">{errors.title[0]}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="destination" className="field-label">
+            Destination
+          </label>
+          <input
+            id="destination"
+            className="field-input"
+            value={form.destination}
+            onChange={(e) => update("destination", e.target.value)}
+            placeholder="Kochi, Munnar & Alleppey"
+          />
+          {errors.destination && <p className="field-error">{errors.destination[0]}</p>}
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
           <div>
-            <label htmlFor="city" className="field-label">
-              City
+            <label htmlFor="durationDays" className="field-label">
+              Days
             </label>
             <input
-              id="city"
+              id="durationDays"
+              type="number"
+              min={1}
               className="field-input"
-              value={form.city}
-              onChange={(e) => update("city", e.target.value)}
-              placeholder="Guwahati"
+              value={form.durationDays}
+              onChange={(e) => update("durationDays", e.target.value)}
+              placeholder="5"
             />
-            {errors.city && <p className="field-error">{errors.city[0]}</p>}
+            {errors.durationDays && <p className="field-error">{errors.durationDays[0]}</p>}
           </div>
           <div>
-            <label htmlFor="country" className="field-label">
-              Country
+            <label htmlFor="durationNights" className="field-label">
+              Nights
             </label>
             <input
-              id="country"
+              id="durationNights"
+              type="number"
+              min={0}
               className="field-input"
-              value={form.country}
-              onChange={(e) => update("country", e.target.value)}
+              value={form.durationNights}
+              onChange={(e) => update("durationNights", e.target.value)}
+              placeholder="4"
             />
-            {errors.country && <p className="field-error">{errors.country[0]}</p>}
+            {errors.durationNights && <p className="field-error">{errors.durationNights[0]}</p>}
+          </div>
+          <div>
+            <label htmlFor="pricePerPerson" className="field-label">
+              Price / person
+            </label>
+            <input
+              id="pricePerPerson"
+              type="number"
+              min={1}
+              className="field-input"
+              value={form.pricePerPerson}
+              onChange={(e) => update("pricePerPerson", e.target.value)}
+              placeholder="18500"
+            />
+            {errors.pricePerPerson && <p className="field-error">{errors.pricePerPerson[0]}</p>}
           </div>
         </div>
 
@@ -232,9 +254,49 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
             className="field-input resize-none"
             value={form.description}
             onChange={(e) => update("description", e.target.value)}
-            placeholder="Tell guests what makes this place special."
+            placeholder="Tell travellers what makes this trip special."
           />
           {errors.description && <p className="field-error">{errors.description[0]}</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="inclusions" className="field-label">
+              Inclusions <span className="text-slate">(comma separated)</span>
+            </label>
+            <input
+              id="inclusions"
+              className="field-input"
+              value={form.inclusions}
+              onChange={(e) => update("inclusions", e.target.value)}
+              placeholder="Hotel stay, Breakfast, Airport transfers"
+            />
+          </div>
+          <div>
+            <label htmlFor="exclusions" className="field-label">
+              Exclusions <span className="text-slate">(comma separated)</span>
+            </label>
+            <input
+              id="exclusions"
+              className="field-input"
+              value={form.exclusions}
+              onChange={(e) => update("exclusions", e.target.value)}
+              placeholder="Flights, Personal expenses"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="highlights" className="field-label">
+            Highlights <span className="text-slate">(comma separated)</span>
+          </label>
+          <input
+            id="highlights"
+            className="field-input"
+            value={form.highlights}
+            onChange={(e) => update("highlights", e.target.value)}
+            placeholder="Houseboat stay, Tea garden trek, Sunset cruise"
+          />
         </div>
 
         <div>
@@ -292,107 +354,87 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
           {errors.coverImage && <p className="field-error mt-1">{errors.coverImage[0]}</p>}
         </div>
 
-        {/* Location */}
-        <div className="border-t border-line pt-5">
-          <p className="field-label mb-1">Location</p>
-          {form.latitude && form.longitude ? (
-            <div>
-              <div className="overflow-hidden rounded-lg border border-line">
-                <iframe
-                  title="Selected location"
-                  src={`https://www.google.com/maps?q=${form.latitude},${form.longitude}&z=15&output=embed`}
-                  className="h-48 w-full"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
-              <div className="mt-2 flex items-center justify-between text-xs text-slate">
-                <span>
-                  Pinned at {Number(form.latitude).toFixed(4)},{" "}
-                  {Number(form.longitude).toFixed(4)}
-                </span>
-                <button
-                  type="button"
-                  onClick={clearLocation}
-                  className="font-medium text-accent-deep hover:underline"
+        {/* Gallery photos */}
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="field-label mb-0">Gallery photos</span>
+            {photos.length > 0 && <span className="text-xs text-slate">{photos.length} added</span>}
+          </div>
+          <input
+            ref={galleryFileInputRef}
+            id="galleryFiles"
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="sr-only"
+            onChange={handleGalleryFilesChange}
+          />
+          <label
+            htmlFor="galleryFiles"
+            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-5 text-center transition-colors ${
+              galleryUploading
+                ? "border-line bg-line/40 cursor-wait"
+                : "border-line hover:border-ink/30 hover:bg-line/30"
+            }`}
+          >
+            {galleryUploading ? (
+              <span className="text-sm text-slate">Uploading…</span>
+            ) : (
+              <span className="text-sm text-slate">
+                Click to upload <span className="font-medium text-ink">or drag and drop</span>
+              </span>
+            )}
+          </label>
+          {galleryUploadError && <p className="field-error mt-1">{galleryUploadError}</p>}
+
+          {photos.length > 0 && (
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {photos.map((url, i) => (
+                <div
+                  key={i}
+                  className="group relative aspect-square overflow-hidden rounded-md border border-line bg-line"
                 >
-                  Change
-                </button>
-              </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs text-white opacity-0 transition group-hover:opacity-100"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
-          ) : (
-            <>
-              <p className="mb-2 text-xs text-slate">
-                Optional — open your property in{" "}
-                <a
-                  href="https://maps.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-ink"
-                >
-                  Google Maps
-                </a>
-                , drop a pin on it, tap <span className="font-medium text-ink">Share</span>, and
-                paste the link here.
-              </p>
-              <div className="flex gap-2">
-                <input
-                  className="field-input"
-                  value={mapLink}
-                  onChange={(e) => setMapLink(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      locateFromLink();
-                    }
-                  }}
-                  placeholder="https://maps.app.goo.gl/…"
-                />
-                <button
-                  type="button"
-                  onClick={locateFromLink}
-                  disabled={locating || !mapLink.trim()}
-                  className="shrink-0 rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink transition hover:border-ink/40 disabled:opacity-50"
-                >
-                  {locating ? "Locating…" : "Drop pin"}
-                </button>
-              </div>
-              {mapLinkError && <p className="field-error mt-1">{mapLinkError}</p>}
-              {(errors.latitude || errors.longitude) && (
-                <p className="field-error mt-1">
-                  {errors.latitude?.[0] ?? errors.longitude?.[0]}
-                </p>
-              )}
-            </>
           )}
         </div>
 
-        {/* Room categories */}
+        {/* Itinerary */}
         <div className="border-t border-line pt-5">
           <div className="flex items-center justify-between">
-            <p className="field-label mb-0">Room categories</p>
+            <p className="field-label mb-0">Itinerary</p>
             <button
               type="button"
-              onClick={addRoomCategory}
+              onClick={addDay}
               className="text-xs font-medium text-accent-deep hover:underline"
             >
-              + Add category
+              + Add day
             </button>
           </div>
           <p className="mt-1 text-xs text-slate">
-            Each category has its own price, photos, amenities, and meal plans. Leave the
-            name blank to skip a row. At least one is required to publish.
+            Day-by-day plan travellers see on the package page. Leave the title blank to skip
+            a row. At least one day is required to publish.
           </p>
 
-          <div className="mt-3 space-y-4">
-            {roomCategories.map((row, i) => (
-              <RoomCategoryFields
+          <div className="mt-3 space-y-3">
+            {itinerary.map((row, i) => (
+              <ItineraryDayFields
                 key={i}
+                dayNumber={i + 1}
                 draft={row}
-                onChange={(patch) => updateRoomCategory(i, patch)}
-                onRemove={() => removeRoomCategory(i)}
-                canRemove={roomCategories.length > 1}
-                fileInputId={`roomCategoryFiles-${i}`}
+                onChange={(patch) => updateDay(i, patch)}
+                onRemove={() => removeDay(i)}
+                canRemove={itinerary.length > 1}
               />
             ))}
           </div>
@@ -400,7 +442,7 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
 
         {/* Contact details */}
         <div className="border-t border-line pt-5">
-          <p className="field-label mb-3">Hotel contact details</p>
+          <p className="field-label mb-3">Package contact details</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="contactEmail" className="field-label">
@@ -412,7 +454,7 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
                 className="field-input"
                 value={form.contactEmail}
                 onChange={(e) => update("contactEmail", e.target.value)}
-                placeholder="stay@yourhotel.com"
+                placeholder="tours@yourcompany.com"
               />
               {errors.contactEmail && <p className="field-error">{errors.contactEmail[0]}</p>}
             </div>
@@ -503,13 +545,9 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
 
         <div className="flex gap-3 pt-2">
           <Button onClick={submit} disabled={submitting} variant="secondary">
-            {submitting ? "Publishing…" : "Publish listing"}
+            {submitting ? "Publishing…" : "Publish package"}
           </Button>
-          <Button
-            variant="ghost"
-            onClick={() => router.push(redirectTo)}
-            type="button"
-          >
+          <Button variant="ghost" onClick={() => router.push(redirectTo)} type="button">
             Cancel
           </Button>
         </div>
@@ -521,24 +559,23 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
         <div className="overflow-hidden rounded-card border border-line bg-white shadow-soft">
           <div className="aspect-[4/3] bg-line">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewImage}
-              alt="Preview"
-              className="h-full w-full object-cover"
-            />
+            <img src={previewImage} alt="Preview" className="h-full w-full object-cover" />
           </div>
           <div className="p-4">
             <p className="text-xs uppercase tracking-wider text-slate">
-              {form.city || "City"}, {form.country || "Country"}
+              {form.destination || "Destination"}
             </p>
             <h3 className="mt-1 font-display text-lg font-semibold text-ink">
-              {form.name || "Your property name"}
+              {form.title || "Your package title"}
             </h3>
+            <p className="mt-1 text-xs text-slate">
+              {form.durationDays || "—"} Days / {form.durationNights || "—"} Nights
+            </p>
             <div className="mt-3 flex items-baseline gap-1">
               <span className="text-lg font-semibold text-ink">
                 {previewPrice > 0 ? formatMoney(previewPrice) : "—"}
               </span>
-              <span className="text-sm text-slate">/ night</span>
+              <span className="text-sm text-slate">/ person</span>
             </div>
           </div>
         </div>

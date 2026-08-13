@@ -43,6 +43,12 @@ export function Navbar({ user }: Props) {
             >
               Browse stays
             </Link>
+            <Link
+              href="/packages"
+              className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-slate transition hover:bg-paper hover:text-ink sm:inline-block"
+            >
+              Packages
+            </Link>
             {(user.role === "SELLER" || user.role === "ADMIN") && (
               <Link
                 href="/seller"
@@ -87,6 +93,12 @@ export function Navbar({ user }: Props) {
               className="hidden rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-paper sm:inline-block"
             >
               Browse stays
+            </Link>
+            <Link
+              href="/packages"
+              className="hidden rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-paper sm:inline-block"
+            >
+              Packages
             </Link>
             <Link
               href="/#get-started"
