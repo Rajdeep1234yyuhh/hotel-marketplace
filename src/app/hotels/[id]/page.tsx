@@ -117,32 +117,6 @@ export default async function HotelDetailPage({
             </div>
           )}
 
-          {(hotel.contactEmail || hotel.contactPhone) && (
-            <div className="mt-8 rounded-lg border border-line bg-white p-4 shadow-soft">
-              <h2 className="font-display text-lg font-bold text-ink">Contact the host</h2>
-              <div className="mt-2 space-y-1 text-sm text-slate">
-                {hotel.contactEmail && (
-                  <p>
-                    Email:{" "}
-                    <a
-                      href={`mailto:${hotel.contactEmail}`}
-                      className="text-ink hover:underline"
-                    >
-                      {hotel.contactEmail}
-                    </a>
-                  </p>
-                )}
-                {hotel.contactPhone && (
-                  <p>
-                    Phone:{" "}
-                    <a href={`tel:${hotel.contactPhone}`} className="text-ink hover:underline">
-                      {hotel.contactPhone}
-                    </a>
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         <aside id="booking-form" className="lg:sticky lg:top-24 lg:self-start">
