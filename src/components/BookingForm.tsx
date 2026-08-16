@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { formatMoney, nightsBetween } from "@/lib/validations";
+import { useRoomSelection } from "@/components/RoomSelectionContext";
 
 type RoomCategoryOption = {
   id: string;
@@ -29,7 +30,7 @@ export function BookingForm({ hotelId, roomCategories }: Props) {
   const [guests, setGuests] = useState(2);
   const [guestName, setGuestName] = useState("");
   const [email, setEmail] = useState("");
-  const [roomCategoryId, setRoomCategoryId] = useState(roomCategories[0]?.id ?? "");
+  const { selectedId: roomCategoryId, setSelectedId: setRoomCategoryId } = useRoomSelection();
   const selectedCategory = roomCategories.find((c) => c.id === roomCategoryId);
   const [mealPlan, setMealPlan] = useState(selectedCategory?.mealPlans[0] ?? "Room Only");
   const [errors, setErrors] = useState<Record<string, string[]>>({});

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { findHotelById, findUserById, roomCategoriesForHotel } from "@/lib/db";
 import { BookingForm } from "@/components/BookingForm";
-import { formatMoney, mealPlansToList, toList } from "@/lib/validations";
+import { RoomCategoryCard } from "@/components/RoomCategoryCard";
+import { RoomSelectionProvider } from "@/components/RoomSelectionContext";
+import { mealPlansToList, toList } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,7 @@ export default async function HotelDetailPage({
         />
       </div>
 
+      <RoomSelectionProvider initialId={hotel.roomCategories[0]?.id ?? ""}>
       <div className="mt-8 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
         <div>
           <p className="eyebrow">
@@ -74,83 +77,19 @@ export default async function HotelDetailPage({
             <div className="mt-8">
               <h2 className="font-display text-xl font-bold text-ink">Room categories</h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {hotel.roomCategories.map((rc) => {
-                  const photos = toList(rc.photos);
-                  const amenities = toList(rc.amenities);
-                  const mealPlans = toList(rc.mealPlans);
-                  return (
-                    <div
-                      key={rc.id}
-                      className="overflow-hidden rounded-card border border-line bg-white"
-                    >
-                      {photos[0] && (
-                        <div className="aspect-[4/3] bg-line">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={photos[0]}
-                            alt={rc.name}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <div className="p-4">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <h3 className="font-display text-lg font-bold text-ink">{rc.name}</h3>
-                          <span className="whitespace-nowrap text-sm font-bold text-ink">
-                            {formatMoney(rc.pricePerNight)}
-                            <span className="text-xs font-normal text-slate"> /night</span>
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-slate">
-                          {rc.totalRooms} {rc.totalRooms === 1 ? "room" : "rooms"} available
-                        </p>
-                        {rc.description && (
-                          <p className="mt-2 text-sm text-ink/80">{rc.description}</p>
-                        )}
-
-                        {amenities.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {amenities.map((a) => (
-                              <span
-                                key={a}
-                                className="rounded-full border border-line bg-paper px-2 py-0.5 text-xs text-ink"
-                              >
-                                {a}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {mealPlans.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {mealPlans.map((plan) => (
-                              <span
-                                key={plan}
-                                className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent-deep"
-                              >
-                                {plan}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {photos.length > 1 && (
-                          <div className="mt-3 flex gap-2 overflow-x-auto">
-                            {photos.slice(1).map((p, i) => (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                key={i}
-                                src={p}
-                                alt={rc.name}
-                                className="h-16 w-24 flex-none rounded-md object-cover"
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {hotel.roomCategories.map((rc) => (
+                  <RoomCategoryCard
+                    key={rc.id}
+                    id={rc.id}
+                    name={rc.name}
+                    pricePerNight={rc.pricePerNight}
+                    totalRooms={rc.totalRooms}
+                    description={rc.description}
+                    photos={toList(rc.photos)}
+                    amenities={toList(rc.amenities)}
+                    mealPlans={toList(rc.mealPlans)}
+                  />
+                ))}
               </div>
             </div>
           )}
@@ -206,7 +145,7 @@ export default async function HotelDetailPage({
           )}
         </div>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside id="booking-form" className="lg:sticky lg:top-24 lg:self-start">
           <BookingForm
             hotelId={hotel.id}
             roomCategories={hotel.roomCategories.map((rc) => ({
@@ -219,6 +158,7 @@ export default async function HotelDetailPage({
           />
         </aside>
       </div>
+      </RoomSelectionProvider>
     </div>
   );
 }

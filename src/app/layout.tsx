@@ -44,12 +44,17 @@ export default async function RootLayout({
         <footer className="border-t border-line">
           <div className="container-page flex flex-col gap-3 py-8 text-sm text-slate sm:flex-row sm:items-center sm:justify-between">
             <span className="font-display text-base font-bold text-ink">Travel Grid India</span>
-            <a
-              href="mailto:support@travelgridindia.com"
-              className="transition hover:text-ink"
-            >
-              support@travelgridindia.com
-            </a>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+              <a
+                href="mailto:support@travelgridindia.com"
+                className="transition hover:text-ink"
+              >
+                support@travelgridindia.com
+              </a>
+              <a href="tel:+918638163192" className="transition hover:text-ink">
+                +91 86381 63192
+              </a>
+            </div>
           </div>
         </footer>
       </body>
