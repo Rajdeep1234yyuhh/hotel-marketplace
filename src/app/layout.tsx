@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   title: "Travel Grid India — Stay & Host Marketplace",
   description:
     "Book independent stays, or list your own property. A two-sided marketplace for travellers and hosts.",
+  icons: {
+    icon: "/lg.jpeg",
+  },
 };
 
 export default async function RootLayout({

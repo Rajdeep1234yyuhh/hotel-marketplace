@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { formatMoney } from "@/lib/validations";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { useRoomSelection } from "@/components/RoomSelectionContext";
@@ -40,10 +41,15 @@ export function RoomCategoryCard({
         <button
           type="button"
           onClick={() => setLightboxIndex(0)}
-          className="block aspect-[4/3] w-full cursor-zoom-in bg-line"
+          className="relative block aspect-[4/3] w-full cursor-zoom-in bg-line"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photos[0]} alt={name} className="h-full w-full object-cover" />
+          <Image
+            src={photos[0]}
+            alt={name}
+            fill
+            sizes="(min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+          />
         </button>
       )}
       <div className="p-4">
@@ -92,10 +98,9 @@ export function RoomCategoryCard({
                 key={i}
                 type="button"
                 onClick={() => setLightboxIndex(i + 1)}
-                className="h-16 w-24 flex-none cursor-zoom-in overflow-hidden rounded-md"
+                className="relative h-16 w-24 flex-none cursor-zoom-in overflow-hidden rounded-md"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p} alt={name} className="h-full w-full object-cover" />
+                <Image src={p} alt={name} fill sizes="96px" className="object-cover" />
               </button>
             ))}
           </div>

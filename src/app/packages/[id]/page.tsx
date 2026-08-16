@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { findTourPackageById, findUserById, itineraryForPackage } from "@/lib/db";
 import { PackageBookingForm } from "@/components/PackageBookingForm";
@@ -33,12 +34,14 @@ export default async function PackageDetailPage({
         ← Back to packages
       </Link>
 
-      <div className="mt-4 overflow-hidden rounded-card border border-line shadow-soft">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className="relative mt-4 h-72 overflow-hidden rounded-card border border-line shadow-soft sm:h-96">
+        <Image
           src={packageRecord.coverImage}
           alt={packageRecord.title}
-          className="h-72 w-full object-cover sm:h-96"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
         />
       </div>
 
@@ -132,13 +135,15 @@ export default async function PackageDetailPage({
               <h2 className="font-display text-xl font-bold text-ink">Gallery</h2>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {photos.map((p, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={i}
-                    src={p}
-                    alt={packageRecord.title}
-                    className="aspect-square w-full rounded-md object-cover"
-                  />
+                  <div key={i} className="relative aspect-square w-full overflow-hidden rounded-md">
+                    <Image
+                      src={p}
+                      alt={packageRecord.title}
+                      fill
+                      sizes="(min-width: 640px) 33vw, 50vw"
+                      className="object-cover"
+                    />
+                  </div>
                 ))}
               </div>
             </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { findHotelById, findUserById, roomCategoriesForHotel } from "@/lib/db";
 import { BookingForm } from "@/components/BookingForm";
@@ -38,12 +39,14 @@ export default async function HotelDetailPage({
         ← Back to stays
       </Link>
 
-      <div className="mt-4 overflow-hidden rounded-card border border-line shadow-soft">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className="relative mt-4 h-72 overflow-hidden rounded-card border border-line shadow-soft sm:h-96">
+        <Image
           src={hotel.coverImage}
           alt={hotel.name}
-          className="h-72 w-full object-cover sm:h-96"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
         />
       </div>
 

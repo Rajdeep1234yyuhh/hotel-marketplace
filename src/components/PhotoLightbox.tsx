@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
 
 type Props = {
   photos: string[];
@@ -59,13 +60,19 @@ export function PhotoLightbox({ photos, alt, index, onClose, onIndexChange }: Pr
         </button>
       )}
 
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={photos[index]}
-        alt={alt}
+      <div
+        className="relative h-[85vh] w-full max-w-5xl"
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[85vh] max-w-full rounded-lg object-contain shadow-2xl"
-      />
+      >
+        <Image
+          src={photos[index]}
+          alt={alt}
+          fill
+          sizes="100vw"
+          priority
+          className="rounded-lg object-contain shadow-2xl"
+        />
+      </div>
 
       {hasMultiple && (
         <button

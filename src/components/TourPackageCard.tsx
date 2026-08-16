@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { formatMoney } from "@/lib/validations";
 
 export type TourPackageCardData = {
@@ -24,12 +25,12 @@ export function TourPackageCard({
       className="group flex flex-col overflow-hidden rounded-card border border-line bg-white shadow-soft transition hover:-translate-y-1 hover:shadow-lift"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-line">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={tourPackage.coverImage}
           alt={tourPackage.title}
-          loading="lazy"
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          fill
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+          className="object-cover transition duration-500 group-hover:scale-105"
         />
         <span className="absolute left-3 top-3 rounded-full bg-ink/85 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur">
           {tourPackage.durationDays}D / {tourPackage.durationNights}N

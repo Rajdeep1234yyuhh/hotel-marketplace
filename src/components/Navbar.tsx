@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -27,9 +28,14 @@ export function Navbar({ user }: Props) {
     <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
       <nav className="container-page flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent font-display text-sm font-bold text-white">
-            T
-          </span>
+          <Image
+            src="/lg.jpeg"
+            alt="Travel Grid India"
+            width={36}
+            height={36}
+            priority
+            className="rounded-lg object-cover"
+          />
           <span className="font-display text-lg font-bold tracking-tight text-ink">
             Travel<span className="text-accent">Grid</span> India
           </span>
