@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { findHotelById } from "@/lib/db";
+import { findHotelById, roomCategoriesForHotel } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { QuickEditHotelForm } from "@/components/QuickEditHotelForm";
+import { HotelForm } from "@/components/HotelForm";
 
 export default async function AdminEditHotelPage({
   params,
@@ -16,6 +16,8 @@ export default async function AdminEditHotelPage({
   const hotel = await findHotelById(params.id);
   if (!hotel) notFound();
 
+  const roomCategories = await roomCategoriesForHotel(hotel.id);
+
   return (
     <div className="container-page py-10">
       <Link href="/admin" className="text-sm text-slate transition hover:text-ink">
@@ -27,19 +29,37 @@ export default async function AdminEditHotelPage({
           Edit {hotel.name}
         </h1>
         <p className="mt-2 max-w-prose text-slate">
-          Quick edit — name, location, description, and cover photo. Room
-          categories are managed by the listing&apos;s owner.
+          Every field is editable here, same as creating a listing — including room
+          categories, location, contact, and payout details.
         </p>
       </div>
       <div className="mt-8">
-        <QuickEditHotelForm
+        <HotelForm
+          redirectTo="/admin"
           hotelId={hotel.id}
           initial={{
             name: hotel.name,
             city: hotel.city,
             country: hotel.country,
             description: hotel.description,
+            contactEmail: hotel.contactEmail,
+            contactPhone: hotel.contactPhone,
+            bankAccountHolder: hotel.bankAccountHolder,
+            bankAccountNumber: hotel.bankAccountNumber,
+            bankIfsc: hotel.bankIfsc,
+            bankName: hotel.bankName,
+            latitude: hotel.latitude,
+            longitude: hotel.longitude,
             coverImage: hotel.coverImage,
+            roomCategories: roomCategories.map((rc) => ({
+              name: rc.name,
+              totalRooms: rc.totalRooms,
+              pricePerNight: rc.pricePerNight,
+              description: rc.description,
+              amenities: rc.amenities,
+              mealPlans: rc.mealPlans,
+              photos: rc.photos,
+            })),
           }}
         />
       </div>

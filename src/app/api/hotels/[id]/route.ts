@@ -3,11 +3,11 @@ import {
   findHotelById,
   roomCategoriesForHotel,
   updateHotelPublished,
-  updateHotel,
+  updateHotelFull,
   deleteHotel,
 } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { updateHotelSchema } from "@/lib/validations";
+import { createHotelSchema } from "@/lib/validations";
 
 export async function GET(
   _req: Request,
@@ -22,7 +22,8 @@ export async function GET(
   });
 }
 
-// PATCH — publish/unpublish a listing (owner or super admin).
+// PATCH — publish/unpublish, or a full edit (same fields as creating a
+// listing, incl. room categories) — owner or super admin.
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
@@ -50,7 +51,7 @@ export async function PATCH(
     return NextResponse.json({ hotel: updated });
   }
 
-  const parsed = updateHotelSchema.safeParse(body);
+  const parsed = createHotelSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.flatten().fieldErrors },
@@ -58,7 +59,12 @@ export async function PATCH(
     );
   }
 
-  const updated = await updateHotel(params.id, parsed.data);
+  const { roomCategories, latitude, longitude, ...hotelData } = parsed.data;
+  const updated = await updateHotelFull(
+    params.id,
+    { ...hotelData, latitude: latitude ?? null, longitude: longitude ?? null },
+    roomCategories
+  );
   return NextResponse.json({ hotel: updated });
 }
 

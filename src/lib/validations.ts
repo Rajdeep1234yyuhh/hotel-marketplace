@@ -51,14 +51,6 @@ export const createHotelSchema = z
     path: ["longitude"],
   });
 
-export const updateHotelSchema = z.object({
-  name: z.string().trim().min(3, "Name is too short").max(120).optional(),
-  city: z.string().trim().min(2).max(80).optional(),
-  country: z.string().trim().min(2).max(80).optional(),
-  description: z.string().trim().min(20, "Add at least a short description").max(2000).optional(),
-  coverImage: z.string().trim().url("Add a valid photo URL").optional(),
-});
-
 export const adminCreateUserSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80),
   email: z.string().trim().email("Enter a valid email"),

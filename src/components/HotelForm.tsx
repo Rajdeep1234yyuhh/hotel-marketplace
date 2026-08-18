@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { formatMoney } from "@/lib/validations";
+import { formatMoney, toList } from "@/lib/validations";
 import { prepareImageForUpload } from "@/lib/image-compression";
 import {
   RoomCategoryFields,
@@ -17,29 +17,71 @@ const SAMPLE_IMAGE =
 // Keep in sync with MAX_BYTES in src/app/api/upload/route.ts.
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
-export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
+export type HotelFormInitial = {
+  name: string;
+  city: string;
+  country: string;
+  description: string;
+  contactEmail: string;
+  contactPhone: string;
+  bankAccountHolder: string;
+  bankAccountNumber: string;
+  bankIfsc: string;
+  bankName: string;
+  latitude: number | null;
+  longitude: number | null;
+  coverImage: string;
+  roomCategories: {
+    name: string;
+    totalRooms: number;
+    pricePerNight: number;
+    description: string;
+    amenities: string;
+    mealPlans: string;
+    photos: string;
+  }[];
+};
+
+type Props = {
+  redirectTo?: string;
+  hotelId?: string;
+  initial?: HotelFormInitial;
+};
+
+export function HotelForm({ redirectTo = "/seller", hotelId, initial }: Props) {
+  const isEdit = Boolean(hotelId && initial);
   const router = useRouter();
   const [form, setForm] = useState({
-    name: "",
-    city: "",
-    country: "India",
-    description: "",
-    contactEmail: "",
-    contactPhone: "",
-    bankAccountHolder: "",
-    bankAccountNumber: "",
-    bankIfsc: "",
-    bankName: "",
-    latitude: "",
-    longitude: "",
+    name: initial?.name ?? "",
+    city: initial?.city ?? "",
+    country: initial?.country ?? "India",
+    description: initial?.description ?? "",
+    contactEmail: initial?.contactEmail ?? "",
+    contactPhone: initial?.contactPhone ?? "",
+    bankAccountHolder: initial?.bankAccountHolder ?? "",
+    bankAccountNumber: initial?.bankAccountNumber ?? "",
+    bankIfsc: initial?.bankIfsc ?? "",
+    bankName: initial?.bankName ?? "",
+    latitude: initial?.latitude != null ? String(initial.latitude) : "",
+    longitude: initial?.longitude != null ? String(initial.longitude) : "",
   });
-  const [roomCategories, setRoomCategories] = useState<RoomCategoryDraft[]>([
-    { ...emptyRoomCategory },
-  ]);
+  const [roomCategories, setRoomCategories] = useState<RoomCategoryDraft[]>(
+    initial && initial.roomCategories.length > 0
+      ? initial.roomCategories.map((rc) => ({
+          name: rc.name,
+          totalRooms: String(rc.totalRooms),
+          pricePerNight: String(rc.pricePerNight),
+          description: rc.description,
+          amenities: rc.amenities,
+          mealPlans: rc.mealPlans,
+          photos: toList(rc.photos),
+        }))
+      : [{ ...emptyRoomCategory }]
+  );
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const [coverImage, setCoverImage] = useState("");
+  const [coverImage, setCoverImage] = useState(initial?.coverImage ?? "");
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverUploadError, setCoverUploadError] = useState("");
   const coverFileInputRef = useRef<HTMLInputElement>(null);
@@ -141,8 +183,8 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
     }
 
     setSubmitting(true);
-    const res = await fetch("/api/hotels", {
-      method: "POST",
+    const res = await fetch(isEdit ? `/api/hotels/${hotelId}` : "/api/hotels", {
+      method: isEdit ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
@@ -503,7 +545,13 @@ export function HotelForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
 
         <div className="flex gap-3 pt-2">
           <Button onClick={submit} disabled={submitting} variant="secondary">
-            {submitting ? "Publishing…" : "Publish listing"}
+            {isEdit
+              ? submitting
+                ? "Saving…"
+                : "Save changes"
+              : submitting
+              ? "Publishing…"
+              : "Publish listing"}
           </Button>
           <Button
             variant="ghost"

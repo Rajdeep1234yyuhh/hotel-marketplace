@@ -301,16 +301,39 @@ export async function updateHotelPublished(id: string, published: boolean): Prom
   return { ...fromDoc<Hotel>(doc), published, updatedAt };
 }
 
-export async function updateHotel(
+/**
+ * Full edit — updates every editable hotel field and replaces the entire
+ * room-category set (deletes the old ones, inserts the new ones). Used by
+ * the admin's full HotelForm-based edit page, which offers the same fields
+ * as creating a listing. `published` and `ownerId` are untouched here;
+ * publishing is handled separately by updateHotelPublished.
+ */
+export async function updateHotelFull(
   id: string,
-  patch: Partial<Pick<Hotel, "name" | "city" | "country" | "description" | "coverImage">>
-): Promise<Hotel | null> {
+  patch: Omit<Hotel, "id" | "createdAt" | "updatedAt" | "ownerId" | "published" | "rating">,
+  roomCategoryInputs: Omit<RoomCategory, "id" | "hotelId" | "createdAt">[]
+): Promise<(Hotel & { roomCategories: RoomCategory[] }) | null> {
   const ref = hotelsCol().doc(id);
   const doc = await ref.get();
   if (!doc.exists) return null;
   const updatedAt = nowIso();
   await ref.update({ ...patch, updatedAt });
-  return { ...fromDoc<Hotel>(doc), ...patch, updatedAt };
+
+  await deleteAll(roomCategoriesCol().where("hotelId", "==", id));
+
+  const categories: RoomCategory[] = [];
+  if (roomCategoryInputs.length > 0) {
+    const batch = getFirestoreDb().batch();
+    for (const c of roomCategoryInputs) {
+      const categoryId = newId();
+      const categoryData = { ...c, hotelId: id, createdAt: nowIso() };
+      batch.set(roomCategoriesCol().doc(categoryId), categoryData);
+      categories.push({ id: categoryId, ...categoryData });
+    }
+    await batch.commit();
+  }
+
+  return { ...fromDoc<Hotel>(doc), ...patch, updatedAt, roomCategories: categories };
 }
 
 export async function deleteHotel(id: string): Promise<boolean> {
