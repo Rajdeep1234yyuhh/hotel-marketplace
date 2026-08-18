@@ -368,6 +368,14 @@ export async function countBookings(where?: { hotelId?: string }): Promise<numbe
   return snap.data().count;
 }
 
+/** All hotel bookings, newest first — for the admin bookings overview. */
+export async function listBookings(): Promise<Booking[]> {
+  const snap = await bookingsCol().get();
+  return snap.docs
+    .map((d) => fromDoc<Booking>(d))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 /** Map of hotelId -> booking count, computed in one pass for dashboard listings. */
 export async function bookingCountsByHotel(): Promise<Record<string, number>> {
   const snap = await bookingsCol().get();
@@ -501,6 +509,14 @@ export async function countPackageBookings(where?: { packageId?: string }): Prom
   if (where?.packageId) query = query.where("packageId", "==", where.packageId);
   const snap = await query.count().get();
   return snap.data().count;
+}
+
+/** All package bookings, newest first — for the admin bookings overview. */
+export async function listPackageBookings(): Promise<PackageBooking[]> {
+  const snap = await packageBookingsCol().get();
+  return snap.docs
+    .map((d) => fromDoc<PackageBooking>(d))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 /** Map of packageId -> booking count, computed in one pass for dashboard listings. */
