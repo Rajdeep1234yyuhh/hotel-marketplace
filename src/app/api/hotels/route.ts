@@ -61,6 +61,7 @@ export async function POST(req: Request) {
       latitude: latitude ?? null,
       longitude: longitude ?? null,
       ownerId: session.userId,
+      managerEmails: [],
     },
     roomCategories
   );

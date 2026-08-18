@@ -6,6 +6,7 @@ import {
   bookingCountsByHotel,
   listTourPackages,
   packageBookingCountsByPackage,
+  findUserById,
 } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { DeleteHotelButton } from "@/components/DeleteHotelButton";
@@ -19,14 +20,23 @@ export default async function SellerDashboard() {
   if (!session) redirect("/");
   if (session.role !== "SELLER" && session.role !== "ADMIN") redirect("/browse");
 
+  const currentUser = await findUserById(session.userId);
+
   const bookingCounts = await bookingCountsByHotel();
-  const ownedHotels = await listHotels({ ownerId: session.userId });
+  const [ownedHotels, managedHotels] = await Promise.all([
+    listHotels({ ownerId: session.userId }),
+    currentUser
+      ? listHotels({ managerEmail: currentUser.email.trim().toLowerCase() })
+      : Promise.resolve([]),
+  ]);
+  const hotelsById = new Map([...ownedHotels, ...managedHotels].map((h) => [h.id, h]));
   const hotels = await Promise.all(
-    ownedHotels.map(async (h) => {
+    Array.from(hotelsById.values()).map(async (h) => {
       const roomCategories = await roomCategoriesForHotel(h.id);
       const prices = roomCategories.map((rc) => rc.pricePerNight);
       return {
         ...h,
+        managed: h.ownerId !== session.userId,
         _count: { bookings: bookingCounts[h.id] ?? 0 },
         roomCategories,
         startingPrice: prices.length > 0 ? Math.min(...prices) : 0,
@@ -100,6 +110,11 @@ export default async function SellerDashboard() {
                     >
                       {h.name}
                     </Link>
+                    {h.managed && (
+                      <span className="ml-1.5 rounded-full bg-line px-1.5 py-0.5 text-[10px] font-medium text-slate">
+                        Managed
+                      </span>
+                    )}
                     <p className="text-xs text-slate sm:hidden">
                       {h.city}, {h.country}
                     </p>

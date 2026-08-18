@@ -164,7 +164,7 @@ async function main() {
   ];
 
   for (const { roomCategories, ...h } of hotels) {
-    await createHotel({ ...h, ownerId: seller.id }, roomCategories);
+    await createHotel({ ...h, ownerId: seller.id, managerEmails: [] }, roomCategories);
   }
 
   console.log("Seeded users,", hotels.length, "hotels, and their room categories into Firestore.");

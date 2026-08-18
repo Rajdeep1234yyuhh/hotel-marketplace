@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { FieldValue } from "firebase-admin/firestore";
 import type { DocumentSnapshot, Query, QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { getFirestoreDb } from "@/lib/firebase-admin";
 
@@ -49,6 +50,10 @@ export type Hotel = {
   latitude: number | null;
   longitude: number | null;
   ownerId: string;
+  // Emails (lowercased) granted the same manage access as the owner —
+  // see addHotelManager/removeHotelManager. Absent on hotels created before
+  // this field existed, so always read with `?? []`.
+  managerEmails: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -244,11 +249,14 @@ export async function findHotelById(id: string): Promise<Hotel | null> {
 
 export async function listHotels(where?: {
   ownerId?: string;
+  managerEmail?: string;
   published?: boolean;
   q?: string;
 }): Promise<Hotel[]> {
   let query: Query = hotelsCol();
   if (where?.ownerId) query = query.where("ownerId", "==", where.ownerId);
+  if (where?.managerEmail)
+    query = query.where("managerEmails", "array-contains", where.managerEmail);
   if (where?.published !== undefined) query = query.where("published", "==", where.published);
 
   const snap = await query.get();
@@ -310,7 +318,10 @@ export async function updateHotelPublished(id: string, published: boolean): Prom
  */
 export async function updateHotelFull(
   id: string,
-  patch: Omit<Hotel, "id" | "createdAt" | "updatedAt" | "ownerId" | "published" | "rating">,
+  patch: Omit<
+    Hotel,
+    "id" | "createdAt" | "updatedAt" | "ownerId" | "published" | "rating" | "managerEmails"
+  >,
   roomCategoryInputs: Omit<RoomCategory, "id" | "hotelId" | "createdAt">[]
 ): Promise<(Hotel & { roomCategories: RoomCategory[] }) | null> {
   const ref = hotelsCol().doc(id);
@@ -346,6 +357,34 @@ export async function deleteHotel(id: string): Promise<boolean> {
   ]);
   await ref.delete();
   return true;
+}
+
+/** Grant a user (by email) the same manage access as the hotel's owner. */
+export async function addHotelManager(id: string, email: string): Promise<Hotel | null> {
+  const ref = hotelsCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const normalized = email.trim().toLowerCase();
+  await ref.update({ managerEmails: FieldValue.arrayUnion(normalized) });
+  const hotel = fromDoc<Hotel>(doc);
+  return {
+    ...hotel,
+    managerEmails: Array.from(new Set([...(hotel.managerEmails ?? []), normalized])),
+  };
+}
+
+/** Revoke a manager's access to a hotel (the owner is unaffected). */
+export async function removeHotelManager(id: string, email: string): Promise<Hotel | null> {
+  const ref = hotelsCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const normalized = email.trim().toLowerCase();
+  await ref.update({ managerEmails: FieldValue.arrayRemove(normalized) });
+  const hotel = fromDoc<Hotel>(doc);
+  return {
+    ...hotel,
+    managerEmails: (hotel.managerEmails ?? []).filter((e) => e !== normalized),
+  };
 }
 
 // ---------------------------------------------------------------------------

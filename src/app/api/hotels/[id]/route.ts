@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   findHotelById,
+  findUserById,
   roomCategoriesForHotel,
   updateHotelPublished,
   updateHotelFull,
@@ -8,6 +9,19 @@ import {
 } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { createHotelSchema } from "@/lib/validations";
+
+// A hotel's owner can always manage it; anyone whose account email appears
+// in managerEmails (granted by an admin — see /api/admin/hotels/[id]/managers)
+// gets the same access, as does a super admin.
+async function canManageHotel(
+  hotel: { ownerId: string; managerEmails: string[] },
+  session: { userId: string; role: string }
+): Promise<boolean> {
+  if (hotel.ownerId === session.userId || session.role === "ADMIN") return true;
+  const user = await findUserById(session.userId);
+  if (!user) return false;
+  return (hotel.managerEmails ?? []).includes(user.email.trim().toLowerCase());
+}
 
 export async function GET(
   _req: Request,
@@ -37,7 +51,7 @@ export async function PATCH(
   if (!hotel) {
     return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
   }
-  if (hotel.ownerId !== session.userId && session.role !== "ADMIN") {
+  if (!(await canManageHotel(hotel, session))) {
     return NextResponse.json(
       { error: "You can only manage your own listings" },
       { status: 403 }
@@ -81,7 +95,7 @@ export async function DELETE(
   if (!hotel) {
     return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
   }
-  if (hotel.ownerId !== session.userId && session.role !== "ADMIN") {
+  if (!(await canManageHotel(hotel, session))) {
     return NextResponse.json(
       { error: "You can only remove your own listings" },
       { status: 403 }

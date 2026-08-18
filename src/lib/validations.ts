@@ -51,6 +51,10 @@ export const createHotelSchema = z
     path: ["longitude"],
   });
 
+export const hotelManagerEmailSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email"),
+});
+
 export const adminCreateUserSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80),
   email: z.string().trim().email("Enter a valid email"),

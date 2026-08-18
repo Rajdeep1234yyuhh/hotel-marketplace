@@ -19,6 +19,7 @@ import { PublishToggleButton } from "@/components/PublishToggleButton";
 import { DeletePackageButton } from "@/components/DeletePackageButton";
 import { PublishTogglePackageButton } from "@/components/PublishTogglePackageButton";
 import { AddUserForm } from "@/components/AddUserForm";
+import { HotelManagersEditor } from "@/components/HotelManagersEditor";
 import { UserRoleSelect } from "@/components/UserRoleSelect";
 import { DeleteUserButton } from "@/components/DeleteUserButton";
 import { isFixedSuperAdmin } from "@/lib/super-admins";
@@ -190,6 +191,17 @@ export default async function AdminDashboard() {
                           <p>
                             {h.contactEmail || "—"} · {h.contactPhone || "—"}
                           </p>
+                        </div>
+                      </details>
+                      <details className="mt-1 text-xs text-slate [&_summary]:cursor-pointer">
+                        <summary className="font-medium text-accent-deep hover:underline">
+                          Manager access ({(h.managerEmails ?? []).length})
+                        </summary>
+                        <div className="mt-1 w-64 rounded-md border border-line bg-paper/50 p-2">
+                          <HotelManagersEditor
+                            hotelId={h.id}
+                            managerEmails={h.managerEmails ?? []}
+                          />
                         </div>
                       </details>
                     </td>
