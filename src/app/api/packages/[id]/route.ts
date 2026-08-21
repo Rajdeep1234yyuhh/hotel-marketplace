@@ -6,7 +6,7 @@ import {
   updateTourPackageFull,
   deleteTourPackage,
 } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSession, canManageListing } from "@/lib/session";
 import { createTourPackageSchema } from "@/lib/validations";
 
 export async function GET(
@@ -37,7 +37,7 @@ export async function PATCH(
   if (!tourPackage) {
     return NextResponse.json({ error: "Package not found" }, { status: 404 });
   }
-  if (tourPackage.ownerId !== session.userId && session.role !== "ADMIN") {
+  if (!(await canManageListing(tourPackage, session))) {
     return NextResponse.json(
       { error: "You can only manage your own listings" },
       { status: 403 }
@@ -77,7 +77,7 @@ export async function DELETE(
   if (!tourPackage) {
     return NextResponse.json({ error: "Package not found" }, { status: 404 });
   }
-  if (tourPackage.ownerId !== session.userId && session.role !== "ADMIN") {
+  if (!(await canManageListing(tourPackage, session))) {
     return NextResponse.json(
       { error: "You can only remove your own listings" },
       { status: 403 }

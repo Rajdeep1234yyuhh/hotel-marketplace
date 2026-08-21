@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
-import { addHotelManager, removeHotelManager, findUserByEmail, updateUserRole } from "@/lib/db";
+import {
+  addPackageManager,
+  removePackageManager,
+  findUserByEmail,
+  updateUserRole,
+} from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { managerEmailSchema } from "@/lib/validations";
 
-// POST /api/admin/hotels/[id]/managers — grant a user (by email) the same
-// manage access as the hotel's owner. Super admin only. If an account
+// POST /api/admin/packages/[id]/managers — grant a user (by email) the same
+// manage access as the package's owner. Super admin only. If an account
 // already exists for that email with the BUYER role, it's bumped to SELLER
 // so the seller dashboard actually opens for them once they sign in.
 export async function POST(
@@ -25,9 +30,9 @@ export async function POST(
     );
   }
 
-  const hotel = await addHotelManager(params.id, parsed.data.email);
-  if (!hotel) {
-    return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
+  const tourPackage = await addPackageManager(params.id, parsed.data.email);
+  if (!tourPackage) {
+    return NextResponse.json({ error: "Package not found" }, { status: 404 });
   }
 
   const existingUser = await findUserByEmail(parsed.data.email);
@@ -35,10 +40,10 @@ export async function POST(
     await updateUserRole(existingUser.id, "SELLER");
   }
 
-  return NextResponse.json({ hotel }, { status: 201 });
+  return NextResponse.json({ package: tourPackage }, { status: 201 });
 }
 
-// DELETE /api/admin/hotels/[id]/managers — revoke a manager's access.
+// DELETE /api/admin/packages/[id]/managers — revoke a manager's access.
 // Super admin only.
 export async function DELETE(
   req: Request,
@@ -58,10 +63,10 @@ export async function DELETE(
     );
   }
 
-  const hotel = await removeHotelManager(params.id, parsed.data.email);
-  if (!hotel) {
-    return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
+  const tourPackage = await removePackageManager(params.id, parsed.data.email);
+  if (!tourPackage) {
+    return NextResponse.json({ error: "Package not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ hotel });
+  return NextResponse.json({ package: tourPackage });
 }

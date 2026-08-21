@@ -57,16 +57,18 @@ export async function getCurrentUser() {
   return findUserById(session.userId);
 }
 
-// A hotel's owner can always manage it; anyone whose account email appears
-// in managerEmails (granted by an admin — see /api/admin/hotels/[id]/managers)
-// gets the same access, as does a super admin. Shared by the hotel API route
-// and the seller-side edit page so both agree on who's allowed in.
-export async function canManageHotel(
-  hotel: { ownerId: string; managerEmails: string[] },
+// A hotel's or package's owner can always manage it; anyone whose account
+// email appears in managerEmails (granted by an admin — see
+// /api/admin/hotels/[id]/managers and /api/admin/packages/[id]/managers)
+// gets the same access, as does a super admin. Shared by the hotel/package
+// API routes and their seller-side edit pages so all of them agree on who's
+// allowed in.
+export async function canManageListing(
+  listing: { ownerId: string; managerEmails: string[] },
   session: Session
 ): Promise<boolean> {
-  if (hotel.ownerId === session.userId || session.role === "ADMIN") return true;
+  if (listing.ownerId === session.userId || session.role === "ADMIN") return true;
   const user = await findUserById(session.userId);
   if (!user) return false;
-  return (hotel.managerEmails ?? []).includes(user.email.trim().toLowerCase());
+  return (listing.managerEmails ?? []).includes(user.email.trim().toLowerCase());
 }

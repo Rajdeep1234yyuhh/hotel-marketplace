@@ -6,7 +6,7 @@ import {
   updateHotelFull,
   deleteHotel,
 } from "@/lib/db";
-import { getSession, canManageHotel } from "@/lib/session";
+import { getSession, canManageListing } from "@/lib/session";
 import { createHotelSchema } from "@/lib/validations";
 
 export async function GET(
@@ -37,7 +37,7 @@ export async function PATCH(
   if (!hotel) {
     return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
   }
-  if (!(await canManageHotel(hotel, session))) {
+  if (!(await canManageListing(hotel, session))) {
     return NextResponse.json(
       { error: "You can only manage your own listings" },
       { status: 403 }
@@ -81,7 +81,7 @@ export async function DELETE(
   if (!hotel) {
     return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
   }
-  if (!(await canManageHotel(hotel, session))) {
+  if (!(await canManageListing(hotel, session))) {
     return NextResponse.json(
       { error: "You can only remove your own listings" },
       { status: 403 }

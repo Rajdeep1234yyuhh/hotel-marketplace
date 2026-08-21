@@ -106,6 +106,10 @@ export type TourPackage = {
   bankIfsc: string;
   bankName: string;
   ownerId: string;
+  // Emails (lowercased) granted the same manage access as the owner —
+  // see addPackageManager/removePackageManager. Absent on packages created
+  // before this field existed, so always read with `?? []`.
+  managerEmails: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -449,11 +453,14 @@ export async function findTourPackageById(id: string): Promise<TourPackage | nul
 
 export async function listTourPackages(where?: {
   ownerId?: string;
+  managerEmail?: string;
   published?: boolean;
   q?: string;
 }): Promise<TourPackage[]> {
   let query: Query = tourPackagesCol();
   if (where?.ownerId) query = query.where("ownerId", "==", where.ownerId);
+  if (where?.managerEmail)
+    query = query.where("managerEmails", "array-contains", where.managerEmail);
   if (where?.published !== undefined) query = query.where("published", "==", where.published);
 
   const snap = await query.get();
@@ -516,7 +523,10 @@ export async function updateTourPackagePublished(
  */
 export async function updateTourPackageFull(
   id: string,
-  patch: Omit<TourPackage, "id" | "createdAt" | "updatedAt" | "ownerId" | "published">,
+  patch: Omit<
+    TourPackage,
+    "id" | "createdAt" | "updatedAt" | "ownerId" | "published" | "managerEmails"
+  >,
   itineraryInputs: Omit<ItineraryDay, "id" | "packageId" | "createdAt">[]
 ): Promise<(TourPackage & { itinerary: ItineraryDay[] }) | null> {
   const ref = tourPackagesCol().doc(id);
@@ -552,6 +562,37 @@ export async function deleteTourPackage(id: string): Promise<boolean> {
   ]);
   await ref.delete();
   return true;
+}
+
+/** Grant a user (by email) the same manage access as the package's owner. */
+export async function addPackageManager(id: string, email: string): Promise<TourPackage | null> {
+  const ref = tourPackagesCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const normalized = email.trim().toLowerCase();
+  await ref.update({ managerEmails: FieldValue.arrayUnion(normalized) });
+  const tourPackage = fromDoc<TourPackage>(doc);
+  return {
+    ...tourPackage,
+    managerEmails: Array.from(new Set([...(tourPackage.managerEmails ?? []), normalized])),
+  };
+}
+
+/** Revoke a manager's access to a package (the owner is unaffected). */
+export async function removePackageManager(
+  id: string,
+  email: string
+): Promise<TourPackage | null> {
+  const ref = tourPackagesCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const normalized = email.trim().toLowerCase();
+  await ref.update({ managerEmails: FieldValue.arrayRemove(normalized) });
+  const tourPackage = fromDoc<TourPackage>(doc);
+  return {
+    ...tourPackage,
+    managerEmails: (tourPackage.managerEmails ?? []).filter((e) => e !== normalized),
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { findTourPackageById, itineraryForPackage } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSession, canManageListing } from "@/lib/session";
 import { TourPackageForm } from "@/components/TourPackageForm";
 
 export default async function SellerEditPackagePage({
@@ -15,7 +15,7 @@ export default async function SellerEditPackagePage({
 
   const tourPackage = await findTourPackageById(params.id);
   if (!tourPackage) notFound();
-  if (tourPackage.ownerId !== session.userId && session.role !== "ADMIN") redirect("/seller");
+  if (!(await canManageListing(tourPackage, session))) redirect("/seller");
 
   const itinerary = await itineraryForPackage(tourPackage.id);
 

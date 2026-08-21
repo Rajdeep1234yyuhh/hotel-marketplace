@@ -3,11 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function HotelManagersEditor({
-  hotelId,
+export function ManagersEditor({
+  apiPath,
   managerEmails,
 }: {
-  hotelId: string;
+  apiPath: string;
   managerEmails: string[];
 }) {
   const router = useRouter();
@@ -18,7 +18,7 @@ export function HotelManagersEditor({
   async function addManager() {
     setBusy(true);
     setError("");
-    const res = await fetch(`/api/admin/hotels/${hotelId}/managers`, {
+    const res = await fetch(apiPath, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -40,7 +40,7 @@ export function HotelManagersEditor({
 
   async function removeManager(target: string) {
     setBusy(true);
-    await fetch(`/api/admin/hotels/${hotelId}/managers`, {
+    await fetch(apiPath, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: target }),

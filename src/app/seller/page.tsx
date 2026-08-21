@@ -47,9 +47,18 @@ export default async function SellerDashboard() {
   const totalBookings = hotels.reduce((sum, h) => sum + h._count.bookings, 0);
 
   const packageBookingCounts = await packageBookingCountsByPackage();
-  const ownedPackages = await listTourPackages({ ownerId: session.userId });
-  const packages = ownedPackages.map((p) => ({
+  const [ownedPackages, managedPackages] = await Promise.all([
+    listTourPackages({ ownerId: session.userId }),
+    currentUser
+      ? listTourPackages({ managerEmail: currentUser.email.trim().toLowerCase() })
+      : Promise.resolve([]),
+  ]);
+  const packagesById = new Map(
+    [...ownedPackages, ...managedPackages].map((p) => [p.id, p])
+  );
+  const packages = Array.from(packagesById.values()).map((p) => ({
     ...p,
+    managed: p.ownerId !== session.userId,
     _count: { bookings: packageBookingCounts[p.id] ?? 0 },
   }));
   const totalPackageBookings = packages.reduce((sum, p) => sum + p._count.bookings, 0);
@@ -240,6 +249,11 @@ export default async function SellerDashboard() {
                     >
                       {p.title}
                     </Link>
+                    {p.managed && (
+                      <span className="ml-1.5 rounded-full bg-line px-1.5 py-0.5 text-[10px] font-medium text-slate">
+                        Managed
+                      </span>
+                    )}
                     <p className="text-xs text-slate sm:hidden">{p.destination}</p>
                     <p className="text-xs text-slate">
                       {p.durationDays}D / {p.durationNights}N

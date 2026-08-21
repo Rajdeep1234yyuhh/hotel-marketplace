@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { findHotelById, roomCategoriesForHotel } from "@/lib/db";
-import { getSession, canManageHotel } from "@/lib/session";
+import { getSession, canManageListing } from "@/lib/session";
 import { HotelForm } from "@/components/HotelForm";
 
 export default async function SellerEditHotelPage({
@@ -15,7 +15,7 @@ export default async function SellerEditHotelPage({
 
   const hotel = await findHotelById(params.id);
   if (!hotel) notFound();
-  if (!(await canManageHotel(hotel, session))) redirect("/seller");
+  if (!(await canManageListing(hotel, session))) redirect("/seller");
 
   const roomCategories = await roomCategoriesForHotel(hotel.id);
 

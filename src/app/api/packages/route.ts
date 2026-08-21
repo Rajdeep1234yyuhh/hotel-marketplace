@@ -58,6 +58,7 @@ export async function POST(req: Request) {
       ...packageData,
       published: true,
       ownerId: session.userId,
+      managerEmails: [],
     },
     itinerary
   );
