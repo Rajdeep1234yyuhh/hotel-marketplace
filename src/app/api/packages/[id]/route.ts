@@ -3,11 +3,11 @@ import {
   findTourPackageById,
   itineraryForPackage,
   updateTourPackagePublished,
-  updateTourPackage,
+  updateTourPackageFull,
   deleteTourPackage,
 } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { updateTourPackageSchema } from "@/lib/validations";
+import { createTourPackageSchema } from "@/lib/validations";
 
 export async function GET(
   _req: Request,
@@ -22,7 +22,8 @@ export async function GET(
   });
 }
 
-// PATCH — publish/unpublish, or quick-edit fields (owner or super admin).
+// PATCH — publish/unpublish, or a full edit (same fields as creating a
+// listing, incl. itinerary) — owner or super admin.
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
@@ -50,7 +51,7 @@ export async function PATCH(
     return NextResponse.json({ package: updated });
   }
 
-  const parsed = updateTourPackageSchema.safeParse(body);
+  const parsed = createTourPackageSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.flatten().fieldErrors },
@@ -58,7 +59,8 @@ export async function PATCH(
     );
   }
 
-  const updated = await updateTourPackage(params.id, parsed.data);
+  const { itinerary, ...packageData } = parsed.data;
+  const updated = await updateTourPackageFull(params.id, packageData, itinerary);
   return NextResponse.json({ package: updated });
 }
 

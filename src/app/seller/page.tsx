@@ -170,7 +170,15 @@ export default async function SellerDashboard() {
                     {h._count.bookings}
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <DeleteHotelButton hotelId={h.id} />
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/seller/hotels/${h.id}/edit`}
+                        className="text-xs font-medium text-slate transition hover:text-ink"
+                      >
+                        Edit
+                      </Link>
+                      <DeleteHotelButton hotelId={h.id} />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -248,7 +256,15 @@ export default async function SellerDashboard() {
                     {p._count.bookings}
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <DeletePackageButton packageId={p.id} />
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/seller/packages/${p.id}/edit`}
+                        className="text-xs font-medium text-slate transition hover:text-ink"
+                      >
+                        Edit
+                      </Link>
+                      <DeletePackageButton packageId={p.id} />
+                    </div>
                   </td>
                 </tr>
               ))}

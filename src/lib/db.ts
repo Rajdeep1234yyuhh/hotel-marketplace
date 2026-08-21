@@ -507,18 +507,39 @@ export async function updateTourPackagePublished(
   return { ...fromDoc<TourPackage>(doc), published, updatedAt };
 }
 
-export async function updateTourPackage(
+/**
+ * Full edit — updates every editable package field and replaces the entire
+ * itinerary (deletes the old days, inserts the new ones). Used by the
+ * admin's and host's shared TourPackageForm-based edit page, which offers
+ * the same fields as creating a listing. `published` is untouched here;
+ * publishing is handled separately by updateTourPackagePublished.
+ */
+export async function updateTourPackageFull(
   id: string,
-  patch: Partial<
-    Pick<TourPackage, "title" | "destination" | "description" | "coverImage" | "hostedBy">
-  >
-): Promise<TourPackage | null> {
+  patch: Omit<TourPackage, "id" | "createdAt" | "updatedAt" | "ownerId" | "published">,
+  itineraryInputs: Omit<ItineraryDay, "id" | "packageId" | "createdAt">[]
+): Promise<(TourPackage & { itinerary: ItineraryDay[] }) | null> {
   const ref = tourPackagesCol().doc(id);
   const doc = await ref.get();
   if (!doc.exists) return null;
   const updatedAt = nowIso();
   await ref.update({ ...patch, updatedAt });
-  return { ...fromDoc<TourPackage>(doc), ...patch, updatedAt };
+
+  await deleteAll(itineraryDaysCol().where("packageId", "==", id));
+
+  const itinerary: ItineraryDay[] = [];
+  if (itineraryInputs.length > 0) {
+    const batch = getFirestoreDb().batch();
+    for (const day of itineraryInputs) {
+      const dayId = newId();
+      const dayData = { ...day, packageId: id, createdAt: nowIso() };
+      batch.set(itineraryDaysCol().doc(dayId), dayData);
+      itinerary.push({ id: dayId, ...dayData });
+    }
+    await batch.commit();
+  }
+
+  return { ...fromDoc<TourPackage>(doc), ...patch, updatedAt, itinerary };
 }
 
 export async function deleteTourPackage(id: string): Promise<boolean> {

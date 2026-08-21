@@ -118,14 +118,6 @@ export const createTourPackageSchema = z.object({
   itinerary: z.array(itineraryDaySchema).min(1, "Add at least one itinerary day").max(30),
 });
 
-export const updateTourPackageSchema = z.object({
-  title: z.string().trim().min(3, "Title is too short").max(120).optional(),
-  destination: z.string().trim().min(2, "Add a destination").max(120).optional(),
-  description: z.string().trim().min(20, "Add at least a short description").max(2000).optional(),
-  coverImage: z.string().trim().url("Add a valid photo URL").optional(),
-  hostedBy: z.string().trim().min(2, "Enter who's hosting this trip").max(120).optional(),
-});
-
 export const createPackageBookingSchema = z.object({
   packageId: z.string().min(1),
   guestName: z.string().trim().min(2, "Enter the guest name").max(80),

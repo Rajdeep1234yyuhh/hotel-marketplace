@@ -4,27 +4,28 @@ import { findTourPackageById, itineraryForPackage } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { TourPackageForm } from "@/components/TourPackageForm";
 
-export default async function AdminEditPackagePage({
+export default async function SellerEditPackagePage({
   params,
 }: {
   params: { id: string };
 }) {
   const session = getSession();
   if (!session) redirect("/");
-  if (session.role !== "ADMIN") redirect("/browse");
+  if (session.role !== "SELLER" && session.role !== "ADMIN") redirect("/browse");
 
   const tourPackage = await findTourPackageById(params.id);
   if (!tourPackage) notFound();
+  if (tourPackage.ownerId !== session.userId && session.role !== "ADMIN") redirect("/seller");
 
   const itinerary = await itineraryForPackage(tourPackage.id);
 
   return (
     <div className="container-page py-10">
-      <Link href="/admin" className="text-sm text-slate transition hover:text-ink">
-        ← Back to admin overview
+      <Link href="/seller" className="text-sm text-slate transition hover:text-ink">
+        ← Back to dashboard
       </Link>
       <div className="mt-4 border-b border-line pb-8">
-        <p className="eyebrow">Super admin</p>
+        <p className="eyebrow">Host dashboard</p>
         <h1 className="mt-2 font-display text-4xl font-bold tracking-tight text-ink">
           Edit {tourPackage.title}
         </h1>
@@ -35,7 +36,7 @@ export default async function AdminEditPackagePage({
       </div>
       <div className="mt-8">
         <TourPackageForm
-          redirectTo="/admin"
+          redirectTo="/seller"
           packageId={tourPackage.id}
           initial={{
             title: tourPackage.title,

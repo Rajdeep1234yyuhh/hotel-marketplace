@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { findTourPackageById, findUserById, itineraryForPackage } from "@/lib/db";
 import { PackageBookingForm } from "@/components/PackageBookingForm";
+import { PackageGallery } from "@/components/PackageGallery";
 import { toList } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
@@ -130,24 +131,7 @@ export default async function PackageDetailPage({
             </div>
           )}
 
-          {photos.length > 0 && (
-            <div className="mt-8">
-              <h2 className="font-display text-xl font-bold text-ink">Gallery</h2>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {photos.map((p, i) => (
-                  <div key={i} className="relative aspect-square w-full overflow-hidden rounded-md">
-                    <Image
-                      src={p}
-                      alt={packageRecord.title}
-                      fill
-                      sizes="(min-width: 640px) 33vw, 50vw"
-                      className="object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <PackageGallery photos={photos} alt={packageRecord.title} />
 
           {(packageRecord.contactEmail || packageRecord.contactPhone) && (
             <div className="mt-8 rounded-lg border border-line bg-white p-4 shadow-soft">

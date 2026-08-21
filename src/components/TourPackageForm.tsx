@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { formatMoney } from "@/lib/validations";
+import { formatMoney, toList } from "@/lib/validations";
 import { prepareImageForUpload } from "@/lib/image-compression";
 import {
   ItineraryDayFields,
@@ -17,36 +17,67 @@ const SAMPLE_IMAGE =
 // Keep in sync with MAX_BYTES in src/app/api/upload/route.ts.
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
-export function TourPackageForm({ redirectTo = "/seller" }: { redirectTo?: string }) {
+export type TourPackageFormInitial = {
+  title: string;
+  destination: string;
+  hostedBy: string;
+  description: string;
+  durationDays: number;
+  durationNights: number;
+  pricePerPerson: number;
+  coverImage: string;
+  photos: string;
+  inclusions: string;
+  exclusions: string;
+  highlights: string;
+  contactEmail: string;
+  contactPhone: string;
+  bankAccountHolder: string;
+  bankAccountNumber: string;
+  bankIfsc: string;
+  bankName: string;
+  itinerary: { title: string; description: string }[];
+};
+
+type Props = {
+  redirectTo?: string;
+  packageId?: string;
+  initial?: TourPackageFormInitial;
+};
+
+export function TourPackageForm({ redirectTo = "/seller", packageId, initial }: Props) {
+  const isEdit = Boolean(packageId && initial);
   const router = useRouter();
   const [form, setForm] = useState({
-    title: "",
-    destination: "",
-    hostedBy: "",
-    description: "",
-    durationDays: "",
-    durationNights: "",
-    pricePerPerson: "",
-    inclusions: "",
-    exclusions: "",
-    highlights: "",
-    contactEmail: "",
-    contactPhone: "",
-    bankAccountHolder: "",
-    bankAccountNumber: "",
-    bankIfsc: "",
-    bankName: "",
+    title: initial?.title ?? "",
+    destination: initial?.destination ?? "",
+    hostedBy: initial?.hostedBy ?? "",
+    description: initial?.description ?? "",
+    durationDays: initial?.durationDays != null ? String(initial.durationDays) : "",
+    durationNights: initial?.durationNights != null ? String(initial.durationNights) : "",
+    pricePerPerson: initial?.pricePerPerson != null ? String(initial.pricePerPerson) : "",
+    inclusions: initial?.inclusions ?? "",
+    exclusions: initial?.exclusions ?? "",
+    highlights: initial?.highlights ?? "",
+    contactEmail: initial?.contactEmail ?? "",
+    contactPhone: initial?.contactPhone ?? "",
+    bankAccountHolder: initial?.bankAccountHolder ?? "",
+    bankAccountNumber: initial?.bankAccountNumber ?? "",
+    bankIfsc: initial?.bankIfsc ?? "",
+    bankName: initial?.bankName ?? "",
   });
-  const [itinerary, setItinerary] = useState<ItineraryDayDraft[]>([{ ...emptyItineraryDay }]);
+  const [itinerary, setItinerary] = useState<ItineraryDayDraft[]>(
+    initial && initial.itinerary.length > 0 ? initial.itinerary : [{ ...emptyItineraryDay }]
+  );
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const [coverImage, setCoverImage] = useState("");
+  const [coverImage, setCoverImage] = useState(initial?.coverImage ?? "");
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverUploadError, setCoverUploadError] = useState("");
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<string[]>(initial ? toList(initial.photos) : []);
   const [galleryUploading, setGalleryUploading] = useState(false);
   const [galleryUploadError, setGalleryUploadError] = useState("");
   const galleryFileInputRef = useRef<HTMLInputElement>(null);
@@ -137,8 +168,8 @@ export function TourPackageForm({ redirectTo = "/seller" }: { redirectTo?: strin
     }
 
     setSubmitting(true);
-    const res = await fetch("/api/packages", {
-      method: "POST",
+    const res = await fetch(isEdit ? `/api/packages/${packageId}` : "/api/packages", {
+      method: isEdit ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
@@ -563,7 +594,13 @@ export function TourPackageForm({ redirectTo = "/seller" }: { redirectTo?: strin
 
         <div className="flex gap-3 pt-2">
           <Button onClick={submit} disabled={submitting} variant="secondary">
-            {submitting ? "Publishing…" : "Publish package"}
+            {isEdit
+              ? submitting
+                ? "Saving…"
+                : "Save changes"
+              : submitting
+              ? "Publishing…"
+              : "Publish package"}
           </Button>
           <Button variant="ghost" onClick={() => router.push(redirectTo)} type="button">
             Cancel
