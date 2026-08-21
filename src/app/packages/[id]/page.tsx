@@ -56,7 +56,7 @@ export default async function PackageDetailPage({
               {packageRecord.durationDays} {packageRecord.durationDays === 1 ? "Day" : "Days"} /{" "}
               {packageRecord.durationNights} {packageRecord.durationNights === 1 ? "Night" : "Nights"}
             </span>
-            <span>Hosted by {owner?.name ?? "Host"}</span>
+            <span>Hosted by {packageRecord.hostedBy || owner?.name || "Host"}</span>
           </div>
 
           <p className="mt-6 max-w-prose leading-relaxed text-ink/80">

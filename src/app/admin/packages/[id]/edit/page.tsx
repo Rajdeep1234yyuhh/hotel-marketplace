@@ -27,8 +27,8 @@ export default async function AdminEditPackagePage({
           Edit {tourPackage.title}
         </h1>
         <p className="mt-2 max-w-prose text-slate">
-          Quick edit — title, destination, description, and cover photo. Itinerary is
-          managed by the listing&apos;s owner.
+          Quick edit — title, destination, hosted by, description, and cover photo.
+          Itinerary is managed by the listing&apos;s owner.
         </p>
       </div>
       <div className="mt-8">
@@ -37,6 +37,7 @@ export default async function AdminEditPackagePage({
           initial={{
             title: tourPackage.title,
             destination: tourPackage.destination,
+            hostedBy: tourPackage.hostedBy,
             description: tourPackage.description,
             coverImage: tourPackage.coverImage,
           }}

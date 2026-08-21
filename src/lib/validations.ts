@@ -100,6 +100,8 @@ export const createTourPackageSchema = z.object({
   exclusions: z.string().trim().default(""),
   highlights: z.string().trim().default(""),
 
+  hostedBy: z.string().trim().min(2, "Enter who's hosting this trip").max(120),
+
   contactEmail: z.string().trim().email("Enter a valid contact email"),
   contactPhone: z
     .string()
@@ -121,6 +123,7 @@ export const updateTourPackageSchema = z.object({
   destination: z.string().trim().min(2, "Add a destination").max(120).optional(),
   description: z.string().trim().min(20, "Add at least a short description").max(2000).optional(),
   coverImage: z.string().trim().url("Add a valid photo URL").optional(),
+  hostedBy: z.string().trim().min(2, "Enter who's hosting this trip").max(120).optional(),
 });
 
 export const createPackageBookingSchema = z.object({

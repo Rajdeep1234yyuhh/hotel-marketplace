@@ -22,6 +22,7 @@ export function TourPackageForm({ redirectTo = "/seller" }: { redirectTo?: strin
   const [form, setForm] = useState({
     title: "",
     destination: "",
+    hostedBy: "",
     description: "",
     durationDays: "",
     durationNights: "",
@@ -194,6 +195,23 @@ export function TourPackageForm({ redirectTo = "/seller" }: { redirectTo?: strin
             placeholder="Kochi, Munnar & Alleppey"
           />
           {errors.destination && <p className="field-error">{errors.destination[0]}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="hostedBy" className="field-label">
+            Hosted by
+          </label>
+          <input
+            id="hostedBy"
+            className="field-input"
+            value={form.hostedBy}
+            onChange={(e) => update("hostedBy", e.target.value)}
+            placeholder="Kerala Backwater Tours"
+          />
+          <p className="mt-1 text-xs text-slate">
+            The agency or host name shown to travellers on this package.
+          </p>
+          {errors.hostedBy && <p className="field-error">{errors.hostedBy[0]}</p>}
         </div>
 
         <div className="grid grid-cols-3 gap-4">

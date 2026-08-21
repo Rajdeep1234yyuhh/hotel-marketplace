@@ -13,6 +13,7 @@ type Props = {
   initial: {
     title: string;
     destination: string;
+    hostedBy: string;
     description: string;
     coverImage: string;
   };
@@ -100,6 +101,19 @@ export function QuickEditPackageForm({ packageId, initial }: Props) {
           onChange={(e) => update("destination", e.target.value)}
         />
         {errors.destination && <p className="field-error">{errors.destination[0]}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="hostedBy" className="field-label">
+          Hosted by
+        </label>
+        <input
+          id="hostedBy"
+          className="field-input"
+          value={form.hostedBy}
+          onChange={(e) => update("hostedBy", e.target.value)}
+        />
+        {errors.hostedBy && <p className="field-error">{errors.hostedBy[0]}</p>}
       </div>
 
       <div>

@@ -98,6 +98,7 @@ export type TourPackage = {
   exclusions: string;
   highlights: string;
   published: boolean;
+  hostedBy: string;
   contactEmail: string;
   contactPhone: string;
   bankAccountHolder: string;
@@ -508,7 +509,9 @@ export async function updateTourPackagePublished(
 
 export async function updateTourPackage(
   id: string,
-  patch: Partial<Pick<TourPackage, "title" | "destination" | "description" | "coverImage">>
+  patch: Partial<
+    Pick<TourPackage, "title" | "destination" | "description" | "coverImage" | "hostedBy">
+  >
 ): Promise<TourPackage | null> {
   const ref = tourPackagesCol().doc(id);
   const doc = await ref.get();
