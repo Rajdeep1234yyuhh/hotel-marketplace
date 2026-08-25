@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { formatMoney, nightsBetween } from "@/lib/validations";
+import { formatMoney } from "@/lib/validations";
 import { useRoomSelection } from "@/components/RoomSelectionContext";
 
 type RoomCategoryOption = {
@@ -14,16 +14,37 @@ type RoomCategoryOption = {
   mealPlans: string[];
 };
 
+type RateOverrideLite = {
+  roomCategoryId: string;
+  date: string;
+  rate: number | null;
+  availableRooms: number | null;
+  closed: boolean;
+};
+
 type Props = {
   hotelId: string;
   roomCategories: RoomCategoryOption[];
+  rateOverrides: RateOverrideLite[];
 };
 
 function isoToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function BookingForm({ hotelId, roomCategories }: Props) {
+function datesBetween(checkIn: string, checkOut: string): string[] {
+  const dates: string[] = [];
+  let d = checkIn;
+  while (d < checkOut) {
+    dates.push(d);
+    const next = new Date(`${d}T00:00:00`);
+    next.setDate(next.getDate() + 1);
+    d = next.toISOString().slice(0, 10);
+  }
+  return dates;
+}
+
+export function BookingForm({ hotelId, roomCategories, rateOverrides }: Props) {
   const router = useRouter();
   const [checkIn, setCheckIn] = useState(isoToday());
   const [checkOut, setCheckOut] = useState("");
@@ -46,14 +67,41 @@ export function BookingForm({ hotelId, roomCategories }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomCategoryId]);
 
+  const overrideMap = useMemo(() => {
+    const m = new Map<string, RateOverrideLite>();
+    rateOverrides.forEach((o) => m.set(`${o.roomCategoryId}|${o.date}`, o));
+    return m;
+  }, [rateOverrides]);
+
   const effectiveRate = selectedCategory?.pricePerNight ?? 0;
   const availableMealPlans = selectedCategory?.mealPlans ?? ["Room Only"];
 
-  const nights =
+  const nightDates =
     checkIn && checkOut && new Date(checkOut) > new Date(checkIn)
-      ? nightsBetween(checkIn, checkOut)
-      : 0;
-  const total = useMemo(() => nights * effectiveRate, [nights, effectiveRate]);
+      ? datesBetween(checkIn, checkOut)
+      : [];
+
+  const nightBreakdown = useMemo(
+    () =>
+      nightDates.map((date) => {
+        const o = selectedCategory ? overrideMap.get(`${selectedCategory.id}|${date}`) : undefined;
+        const rate = o?.rate ?? effectiveRate;
+        const available = o?.closed
+          ? 0
+          : o?.availableRooms ?? selectedCategory?.totalRooms ?? 0;
+        return { date, rate, available };
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nightDates.join(","), selectedCategory?.id, overrideMap, effectiveRate]
+  );
+
+  const soldOutDates = nightBreakdown.filter((n) => n.available <= 0);
+  const isSoldOut = nightBreakdown.length > 0 && soldOutDates.length > 0;
+  const nights = nightDates.length;
+  const total = useMemo(
+    () => nightBreakdown.reduce((sum, n) => sum + n.rate, 0),
+    [nightBreakdown]
+  );
 
   async function submit() {
     setSubmitting(true);
@@ -75,7 +123,9 @@ export function BookingForm({ hotelId, roomCategories }: Props) {
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setErrors(typeof data.error === "object" ? data.error : {});
+      setErrors(
+        typeof data.error === "object" ? data.error : { _: [String(data.error ?? "Something went wrong")] }
+      );
       setSubmitting(false);
       return;
     }
@@ -252,15 +302,31 @@ export function BookingForm({ hotelId, roomCategories }: Props) {
         </div>
       </div>
 
-      {nights > 0 && (
+      {isSoldOut && (
+        <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-medium text-red-600">
+          Sold Out for the selected dates. Try different dates or another room category.
+        </div>
+      )}
+
+      {!isSoldOut && nights > 0 && (
         <div className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
-          <div className="flex justify-between text-slate">
-            <span>
-              {formatMoney(effectiveRate)} × {nights}{" "}
-              {nights === 1 ? "night" : "nights"}
-            </span>
-            <span>{formatMoney(total)}</span>
-          </div>
+          {nightBreakdown.every((n) => n.rate === nightBreakdown[0].rate) ? (
+            <div className="flex justify-between text-slate">
+              <span>
+                {formatMoney(effectiveRate)} × {nights} {nights === 1 ? "night" : "nights"}
+              </span>
+              <span>{formatMoney(total)}</span>
+            </div>
+          ) : (
+            <div className="space-y-1 text-xs text-slate">
+              {nightBreakdown.map((n) => (
+                <div key={n.date} className="flex justify-between">
+                  <span>{new Date(`${n.date}T00:00:00`).toLocaleDateString()}</span>
+                  <span>{formatMoney(n.rate)}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex justify-between text-base font-bold text-ink">
             <span>Total</span>
             <span>{formatMoney(total)}</span>
@@ -268,13 +334,21 @@ export function BookingForm({ hotelId, roomCategories }: Props) {
         </div>
       )}
 
+      {errors._ && <p className="field-error mt-3">{errors._[0]}</p>}
+
       <Button
         variant="secondary"
         className="mt-5 w-full"
         onClick={submit}
-        disabled={submitting || nights === 0}
+        disabled={submitting || nights === 0 || isSoldOut}
       >
-        {submitting ? "Confirming…" : nights === 0 ? "Choose your dates" : "Reserve"}
+        {submitting
+          ? "Confirming…"
+          : nights === 0
+          ? "Choose your dates"
+          : isSoldOut
+          ? "Sold Out"
+          : "Reserve"}
       </Button>
       <p className="mt-2 text-center text-xs text-slate">
         You won&apos;t be charged — this is a demo reservation.

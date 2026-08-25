@@ -1,7 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { findHotelById, findUserById, roomCategoriesForHotel } from "@/lib/db";
+import {
+  findHotelById,
+  findUserById,
+  roomCategoriesForHotel,
+  listRateOverridesForHotel,
+} from "@/lib/db";
 import { BookingForm } from "@/components/BookingForm";
 import { RoomCategoryCard } from "@/components/RoomCategoryCard";
 import { RoomSelectionProvider } from "@/components/RoomSelectionContext";
@@ -17,9 +22,10 @@ export default async function HotelDetailPage({
   const hotelRecord = await findHotelById(params.id);
   if (!hotelRecord) notFound();
 
-  const [owner, roomCategories] = await Promise.all([
+  const [owner, roomCategories, rateOverrides] = await Promise.all([
     findUserById(hotelRecord.ownerId),
     roomCategoriesForHotel(hotelRecord.id),
+    listRateOverridesForHotel(hotelRecord.id),
   ]);
   const hotel = {
     ...hotelRecord,
@@ -131,6 +137,13 @@ export default async function HotelDetailPage({
               pricePerNight: rc.pricePerNight,
               totalRooms: rc.totalRooms,
               mealPlans: mealPlansToList(rc.mealPlans),
+            }))}
+            rateOverrides={rateOverrides.map((o) => ({
+              roomCategoryId: o.roomCategoryId,
+              date: o.date,
+              rate: o.rate,
+              availableRooms: o.availableRooms,
+              closed: o.closed,
             }))}
           />
         </aside>

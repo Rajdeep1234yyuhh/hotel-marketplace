@@ -5,8 +5,21 @@ import {
   findUserByEmail,
   createUser,
   createBooking,
+  listRateOverridesForHotel,
 } from "@/lib/db";
 import { createBookingSchema, nightsBetween } from "@/lib/validations";
+
+function datesBetween(checkIn: string, checkOut: string): string[] {
+  const dates: string[] = [];
+  let d = checkIn;
+  while (d < checkOut) {
+    dates.push(d);
+    const next = new Date(`${d}T00:00:00`);
+    next.setDate(next.getDate() + 1);
+    d = next.toISOString().slice(0, 10);
+  }
+  return dates;
+}
 
 // POST /api/bookings — booking never requires a session. Anyone can browse
 // and book; the guest name/email collected on this form is all that's
@@ -41,8 +54,29 @@ export async function POST(req: Request) {
     );
   }
 
+  // Price and validate availability per night against the rates calendar —
+  // never trust the client, and never let a sold-out date get booked.
+  const nightDates = datesBetween(checkIn, checkOut);
+  const overrides = await listRateOverridesForHotel(hotelId);
+  const overrideByDate = new Map(
+    overrides
+      .filter((o) => o.roomCategoryId === category.id)
+      .map((o) => [o.date, o])
+  );
+
+  let total = 0;
+  for (const date of nightDates) {
+    const o = overrideByDate.get(date);
+    const available = o?.closed ? 0 : o?.availableRooms ?? category.totalRooms;
+    if (available <= 0) {
+      return NextResponse.json(
+        { error: "Sold Out for the selected dates" },
+        { status: 400 }
+      );
+    }
+    total += o?.rate ?? category.pricePerNight;
+  }
   const nights = nightsBetween(checkIn, checkOut);
-  const total = nights * category.pricePerNight;
 
   // Reuse an existing account if this email already has one (keeping
   // whatever role it already has — never downgrade a SELLER/ADMIN just

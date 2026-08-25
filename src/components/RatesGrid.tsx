@@ -34,12 +34,7 @@ type EntryPayload = {
   maxStay: number | null;
 };
 
-type Granularity = "day" | "week" | "month";
-type Period = { key: string; label: string; sublabel: string; dates: string[] };
-
 const DAY_COLUMNS = 8;
-const WEEK_COLUMNS = 8;
-const MONTH_COLUMNS = 6;
 
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -47,11 +42,6 @@ function toISODate(d: Date) {
 function addDays(dateStr: string, n: number) {
   const d = new Date(`${dateStr}T00:00:00`);
   d.setDate(d.getDate() + n);
-  return toISODate(d);
-}
-function addMonths(dateStr: string, n: number) {
-  const d = new Date(`${dateStr}T00:00:00`);
-  d.setMonth(d.getMonth() + n);
   return toISODate(d);
 }
 function todayISO() {
@@ -67,48 +57,14 @@ function formatHeader(dateStr: string) {
 function cellKey(roomCategoryId: string, date: string) {
   return `${roomCategoryId}|${date}`;
 }
-
-function periodsFor(granularity: Granularity, windowStart: string): Period[] {
-  if (granularity === "day") {
-    return Array.from({ length: DAY_COLUMNS }, (_, i) => {
-      const date = addDays(windowStart, i);
-      const h = formatHeader(date);
-      return { key: date, label: h.weekday, sublabel: h.day, dates: [date] };
-    });
+function datesInRange(from: string, to: string): string[] {
+  const dates: string[] = [];
+  let d = from;
+  while (d <= to) {
+    dates.push(d);
+    d = addDays(d, 1);
   }
-  if (granularity === "week") {
-    return Array.from({ length: WEEK_COLUMNS }, (_, i) => {
-      const start = addDays(windowStart, i * 7);
-      const dates = Array.from({ length: 7 }, (_, d) => addDays(start, d));
-      return {
-        key: start,
-        label: `${formatHeader(dates[0]).day} – ${formatHeader(dates[6]).day}`,
-        sublabel: "7 days",
-        dates,
-      };
-    });
-  }
-  const anchor = new Date(`${windowStart}T00:00:00`);
-  anchor.setDate(1);
-  return Array.from({ length: MONTH_COLUMNS }, (_, i) => {
-    const d = new Date(anchor);
-    d.setMonth(d.getMonth() + i);
-    const start = toISODate(d);
-    const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    const dates = Array.from({ length: daysInMonth }, (_, dd) => addDays(start, dd));
-    return {
-      key: start,
-      label: d.toLocaleDateString("en-IN", { month: "short", year: "numeric" }),
-      sublabel: `${daysInMonth} days`,
-      dates,
-    };
-  });
-}
-
-function stepWindow(windowStart: string, granularity: Granularity, direction: 1 | -1): string {
-  if (granularity === "day") return addDays(windowStart, direction * DAY_COLUMNS);
-  if (granularity === "week") return addDays(windowStart, direction * WEEK_COLUMNS * 7);
-  return addMonths(windowStart, direction * MONTH_COLUMNS);
+  return dates;
 }
 
 export function RatesGrid({
@@ -121,7 +77,7 @@ export function RatesGrid({
   initialOverrides: OverrideLite[];
 }) {
   const router = useRouter();
-  const [granularity, setGranularity] = useState<Granularity>("day");
+  const [tab, setTab] = useState<"day" | "calendar">("day");
   const [windowStart, setWindowStart] = useState(todayISO());
   const [cells, setCells] = useState<Record<string, CellValue>>({});
   const [saving, setSaving] = useState(false);
@@ -167,21 +123,18 @@ export function RatesGrid({
     return cells[cellKey(roomCategoryId, date)] ?? mergedCell(roomCategoryId, date);
   }
 
-  // Applies a patch to every date within a period (a single date, for "By Date").
-  function setPeriodCell(roomCategoryId: string, period: Period, patch: Partial<CellValue>) {
+  function setCell(roomCategoryId: string, date: string, patch: Partial<CellValue>) {
     setCells((prev) => {
-      const next = { ...prev };
-      period.dates.forEach((date) => {
-        const key = cellKey(roomCategoryId, date);
-        const current = prev[key] ?? mergedCell(roomCategoryId, date);
-        next[key] = { ...current, ...patch };
-      });
-      return next;
+      const key = cellKey(roomCategoryId, date);
+      const current = prev[key] ?? mergedCell(roomCategoryId, date);
+      return { ...prev, [key]: { ...current, ...patch } };
     });
   }
 
-  const periods = useMemo(() => periodsFor(granularity, windowStart), [granularity, windowStart]);
-  const visibleDates = useMemo(() => periods.flatMap((p) => p.dates), [periods]);
+  const visibleDates = useMemo(
+    () => Array.from({ length: DAY_COLUMNS }, (_, i) => addDays(windowStart, i)),
+    [windowStart]
+  );
 
   async function postEntries(payload: EntryPayload[]): Promise<boolean> {
     if (payload.length === 0) return true;
@@ -210,25 +163,21 @@ export function RatesGrid({
   }
 
   function copyPreviousRates() {
-    const prevStart = stepWindow(windowStart, granularity, -1);
-    const prevPeriods = periodsFor(granularity, prevStart);
+    const prevStart = addDays(windowStart, -DAY_COLUMNS);
     setCells((prev) => {
       const next = { ...prev };
       roomCategories.forEach((rc) => {
-        periods.forEach((period, i) => {
-          const prevPeriod = prevPeriods[i];
-          const sourceKey = cellKey(rc.id, prevPeriod.dates[0]);
-          const source = prev[sourceKey] ?? mergedCell(rc.id, prevPeriod.dates[0]);
-          period.dates.forEach((date) => {
-            const key = cellKey(rc.id, date);
-            const current = prev[key] ?? mergedCell(rc.id, date);
-            next[key] = { ...current, rate: source.rate, availableRooms: source.availableRooms };
-          });
+        visibleDates.forEach((date, i) => {
+          const prevDate = addDays(prevStart, i);
+          const source = prev[cellKey(rc.id, prevDate)] ?? mergedCell(rc.id, prevDate);
+          const key = cellKey(rc.id, date);
+          const current = prev[key] ?? mergedCell(rc.id, date);
+          next[key] = { ...current, rate: source.rate, availableRooms: source.availableRooms };
         });
       });
       return next;
     });
-    setMessage("Copied the previous period's rates into this view. Click Save All Changes to keep them.");
+    setMessage("Copied last week's rates into this view. Click Save All Changes to keep them.");
   }
 
   function exportRows() {
@@ -240,7 +189,6 @@ export function RatesGrid({
           Date: date,
           Rate: c.rate,
           Inventory: c.availableRooms,
-          Closed: c.closed ? "yes" : "no",
         };
       })
     );
@@ -275,13 +223,67 @@ export function RatesGrid({
         if (!roomCategoryId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
         if (!Number.isFinite(rate) || !Number.isFinite(availableRooms)) return;
         const key = cellKey(roomCategoryId, date);
-        next[key] = { ...(prev[key] ?? mergedCell(roomCategoryId, date)), rate, availableRooms };
+        next[key] = {
+          ...(prev[key] ?? mergedCell(roomCategoryId, date)),
+          rate,
+          availableRooms,
+          closed: false,
+        };
         applied++;
       });
       return next;
     });
     setMessage(`Imported ${applied} row(s). Review and click Save All Changes.`);
     if (importInputRef.current) importInputRef.current.value = "";
+  }
+
+  // --- Calendar range tab ---
+  const [calRoomCategoryIds, setCalRoomCategoryIds] = useState<string[]>(
+    roomCategories.map((rc) => rc.id)
+  );
+  const [calFrom, setCalFrom] = useState(todayISO());
+  const [calTo, setCalTo] = useState(todayISO());
+  const [calRate, setCalRate] = useState("");
+  const [calAvailability, setCalAvailability] = useState("");
+
+  function toggleCalRoomCategory(id: string) {
+    setCalRoomCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  async function applyCalendarRange() {
+    if (!calFrom || !calTo || calFrom > calTo) {
+      setMessage("Pick a valid date range.");
+      return;
+    }
+    if (calRoomCategoryIds.length === 0) {
+      setMessage("Pick at least one room type.");
+      return;
+    }
+    if (!calRate.trim() && !calAvailability.trim()) {
+      setMessage("Enter a rate and/or available rooms to apply.");
+      return;
+    }
+    const dates = datesInRange(calFrom, calTo);
+    const patch: Partial<CellValue> = { closed: false };
+    if (calRate.trim()) patch.rate = Number(calRate);
+    if (calAvailability.trim()) patch.availableRooms = Number(calAvailability);
+
+    const payload: EntryPayload[] = [];
+    calRoomCategoryIds.forEach((roomCategoryId) => {
+      dates.forEach((date) => {
+        const current = getCell(roomCategoryId, date);
+        payload.push({ roomCategoryId, date, ...current, ...patch });
+      });
+    });
+
+    const ok = await postEntries(payload);
+    if (ok) {
+      setMessage(
+        `Applied to ${dates.length} date(s) across ${calRoomCategoryIds.length} room type(s).`
+      );
+    }
   }
 
   if (roomCategories.length === 0) {
@@ -295,156 +297,250 @@ export function RatesGrid({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setWindowStart((w) => stepWindow(w, granularity, -1))}
-            className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-ink/40"
-          >
-            ‹ Previous
-          </button>
-          <p className="text-sm font-medium text-ink">
-            {formatHeader(periods[0].dates[0]).day} –{" "}
-            {formatHeader(periods[periods.length - 1].dates[periods[periods.length - 1].dates.length - 1]).day}
-          </p>
-          <button
-            type="button"
-            onClick={() => setWindowStart((w) => stepWindow(w, granularity, 1))}
-            className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-ink/40"
-          >
-            Next ›
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <ExportCsvButton rows={exportRows()} filename={`rates-${windowStart}.csv`} label="Export" />
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-ink transition hover:border-ink/40">
-            Import Rates
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".csv"
-              className="sr-only"
-              onChange={handleImportFile}
-            />
-          </label>
-          <button
-            type="button"
-            onClick={copyPreviousRates}
-            className="rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-ink transition hover:border-ink/40"
-          >
-            Copy Previous Rates
-          </button>
-          <button
-            type="button"
-            onClick={saveVisible}
-            disabled={saving}
-            className="rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-accent-deep disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Save All Changes"}
-          </button>
-        </div>
+      <div className="flex gap-1 rounded-lg border border-line bg-paper/60 p-1 text-sm">
+        <TabButton active={tab === "day"} onClick={() => setTab("day")}>
+          By Date
+        </TabButton>
+        <TabButton active={tab === "calendar"} onClick={() => setTab("calendar")}>
+          By Calendar
+        </TabButton>
       </div>
 
-      <div className="mt-4 flex gap-1 rounded-lg border border-line bg-paper/60 p-1 text-sm">
-        {(
-          [
-            ["day", "By Date"],
-            ["week", "By Week"],
-            ["month", "By Month"],
-          ] as [Granularity, string][]
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => {
-              setGranularity(value);
-              setWindowStart(todayISO());
-            }}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
-              granularity === value ? "bg-white text-ink shadow-soft" : "text-slate hover:text-ink"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {tab === "day" && (
+        <>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setWindowStart((w) => addDays(w, -DAY_COLUMNS))}
+                className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-ink/40"
+              >
+                ‹ Previous week
+              </button>
+              <p className="text-sm font-medium text-ink">
+                {formatHeader(visibleDates[0]).day} –{" "}
+                {formatHeader(visibleDates[visibleDates.length - 1]).day}
+              </p>
+              <button
+                type="button"
+                onClick={() => setWindowStart((w) => addDays(w, DAY_COLUMNS))}
+                className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-ink/40"
+              >
+                Next week ›
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ExportCsvButton rows={exportRows()} filename={`rates-${windowStart}.csv`} label="Export" />
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-ink transition hover:border-ink/40">
+                Import Rates
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".csv"
+                  className="sr-only"
+                  onChange={handleImportFile}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={copyPreviousRates}
+                className="rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-ink transition hover:border-ink/40"
+              >
+                Copy Previous Rates
+              </button>
+              <button
+                type="button"
+                onClick={saveVisible}
+                disabled={saving}
+                className="rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-accent-deep disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Save All Changes"}
+              </button>
+            </div>
+          </div>
 
-      {message && <p className="mt-2 text-xs text-slate">{message}</p>}
+          {message && <p className="mt-2 text-xs text-slate">{message}</p>}
 
-      <div className="mt-4 overflow-x-auto rounded-card border border-line bg-white">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-line bg-paper/60 text-xs uppercase tracking-wider text-slate">
-              <th className="whitespace-nowrap px-4 py-3 font-medium">Room Type</th>
-              {periods.map((period) => (
-                <th key={period.key} className="px-2 py-3 text-center font-medium">
-                  <p>{period.label}</p>
-                  <p className="text-ink">{period.sublabel}</p>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {roomCategories.map((rc) => (
-              <tr key={rc.id}>
-                <td className="whitespace-nowrap px-4 py-3 align-top">
-                  <p className="font-medium text-ink">{rc.name}</p>
-                  <p className="text-xs text-slate">Max {rc.totalRooms} rooms</p>
-                </td>
-                {periods.map((period) => {
-                  const c = getCell(rc.id, period.dates[0]);
-                  return (
-                    <td key={period.key} className="px-1.5 py-3 text-center align-top">
-                      <input
-                        type="number"
-                        min={1}
-                        value={c.rate}
-                        onChange={(e) =>
-                          setPeriodCell(rc.id, period, { rate: Number(e.target.value) })
-                        }
-                        className="w-20 rounded-md border border-line px-1.5 py-1 text-center text-xs"
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        value={c.availableRooms}
-                        disabled={c.closed}
-                        onChange={(e) =>
-                          setPeriodCell(rc.id, period, { availableRooms: Number(e.target.value) })
-                        }
-                        className={`mt-1 w-20 rounded-md border px-1.5 py-1 text-center text-xs ${
-                          c.closed
-                            ? "border-line bg-line/40 text-slate"
-                            : c.availableRooms <= 2
-                            ? "border-red-200 text-red-600"
-                            : "border-line text-emerald-700"
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setPeriodCell(rc.id, period, { closed: !c.closed })}
-                        className={`mt-1 block w-full rounded-md px-1 py-0.5 text-[10px] font-medium transition ${
-                          c.closed
-                            ? "bg-red-50 text-red-600"
-                            : "text-slate hover:bg-paper hover:text-ink"
-                        }`}
-                      >
-                        {c.closed ? "Closed" : "Close"}
-                      </button>
+          <div className="mt-4 overflow-x-auto rounded-card border border-line bg-white">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-line bg-paper/60 text-xs uppercase tracking-wider text-slate">
+                  <th className="whitespace-nowrap px-4 py-3 font-medium">Room Type</th>
+                  {visibleDates.map((date) => {
+                    const h = formatHeader(date);
+                    return (
+                      <th key={date} className="px-2 py-3 text-center font-medium">
+                        <p>{h.weekday}</p>
+                        <p className="text-ink">{h.day}</p>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {roomCategories.map((rc) => (
+                  <tr key={rc.id}>
+                    <td className="whitespace-nowrap px-4 py-3 align-top">
+                      <p className="font-medium text-ink">{rc.name}</p>
+                      <p className="text-xs text-slate">Max {rc.totalRooms} rooms</p>
                     </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-2 text-xs text-slate">
-        Editing a week or month sets the same rate and availability across every day in it.
-        Inventory in red has 2 or fewer rooms left. Nothing is saved until you click Save All
-        Changes.
-      </p>
+                    {visibleDates.map((date) => {
+                      const c = getCell(rc.id, date);
+                      const soldOut = c.availableRooms <= 0;
+                      return (
+                        <td key={date} className="px-1.5 py-3 text-center align-top">
+                          <input
+                            type="number"
+                            min={1}
+                            value={c.rate}
+                            onChange={(e) =>
+                              setCell(rc.id, date, { rate: Number(e.target.value) })
+                            }
+                            className="w-20 rounded-md border border-line px-1.5 py-1 text-center text-xs"
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            value={c.availableRooms}
+                            onChange={(e) =>
+                              setCell(rc.id, date, {
+                                availableRooms: Number(e.target.value),
+                                closed: false,
+                              })
+                            }
+                            className={`mt-1 w-20 rounded-md border px-1.5 py-1 text-center text-xs ${
+                              soldOut
+                                ? "border-red-200 text-red-600"
+                                : c.availableRooms <= 2
+                                ? "border-red-200 text-red-600"
+                                : "border-line text-emerald-700"
+                            }`}
+                          />
+                          {soldOut && (
+                            <p className="mt-1 text-[10px] font-semibold text-red-600">Sold out</p>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-xs text-slate">
+            Set available rooms to 0 to mark a date sold out. Guests booking this hotel will
+            see the same rates and see &quot;Sold Out&quot; for dates with no availability.
+            Nothing is saved until you click Save All Changes.
+          </p>
+        </>
+      )}
+
+      {tab === "calendar" && (
+        <div className="mt-4 max-w-2xl space-y-4 rounded-card border border-line bg-white p-5">
+          {message && <p className="text-xs text-slate">{message}</p>}
+          <div>
+            <p className="field-label">Room types</p>
+            <div className="flex flex-wrap gap-2">
+              {roomCategories.map((rc) => (
+                <label
+                  key={rc.id}
+                  className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                    calRoomCategoryIds.includes(rc.id)
+                      ? "border-accent bg-accent/10 text-accent-deep"
+                      : "border-line text-slate hover:border-ink/40"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={calRoomCategoryIds.includes(rc.id)}
+                    onChange={() => toggleCalRoomCategory(rc.id)}
+                  />
+                  {rc.name}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="field-label">From</label>
+              <input
+                type="date"
+                value={calFrom}
+                onChange={(e) => setCalFrom(e.target.value)}
+                className="field-input"
+              />
+            </div>
+            <div>
+              <label className="field-label">To</label>
+              <input
+                type="date"
+                min={calFrom}
+                value={calTo}
+                onChange={(e) => setCalTo(e.target.value)}
+                className="field-input"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="field-label">Rate per night (leave blank to keep)</label>
+              <input
+                type="number"
+                min={1}
+                value={calRate}
+                onChange={(e) => setCalRate(e.target.value)}
+                className="field-input"
+                placeholder="e.g. 4500"
+              />
+            </div>
+            <div>
+              <label className="field-label">Available rooms (leave blank to keep)</label>
+              <input
+                type="number"
+                min={0}
+                value={calAvailability}
+                onChange={(e) => setCalAvailability(e.target.value)}
+                className="field-input"
+                placeholder="0 = sold out"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={applyCalendarRange}
+            disabled={saving}
+            className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-deep disabled:opacity-50"
+          >
+            {saving ? "Applying…" : "Apply to selected dates"}
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+        active ? "bg-white text-ink shadow-soft" : "text-slate hover:text-ink"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
