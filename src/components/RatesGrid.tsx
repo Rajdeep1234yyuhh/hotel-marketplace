@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { CalendarRangePicker } from "@/components/CalendarRangePicker";
 
 type RoomCategoryLite = { id: string; name: string; pricePerNight: number; totalRooms: number };
 
@@ -462,24 +463,16 @@ export function RatesGrid({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="field-label">From</label>
-              <input
-                type="date"
-                value={calFrom}
-                onChange={(e) => setCalFrom(e.target.value)}
-                className="field-input"
-              />
-            </div>
-            <div>
-              <label className="field-label">To</label>
-              <input
-                type="date"
-                min={calFrom}
-                value={calTo}
-                onChange={(e) => setCalTo(e.target.value)}
-                className="field-input"
+          <div>
+            <p className="field-label">Dates</p>
+            <div className="rounded-lg border border-line p-3">
+              <CalendarRangePicker
+                from={calFrom}
+                to={calTo}
+                onChange={(from, to) => {
+                  setCalFrom(from);
+                  setCalTo(to);
+                }}
               />
             </div>
           </div>
