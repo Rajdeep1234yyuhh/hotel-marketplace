@@ -1,17 +1,11 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
 import { HotelForm } from "@/components/HotelForm";
 
 export default function NewHotelPage() {
-  const session = getSession();
-  if (!session) redirect("/");
-  if (session.role !== "SELLER" && session.role !== "ADMIN") redirect("/browse");
-
   return (
-    <div className="container-page py-10">
+    <div>
       <Link href="/seller" className="text-sm text-slate transition hover:text-ink">
-        ← Back to dashboard
+        ← Back to properties
       </Link>
       <div className="mt-4 border-b border-line pb-8">
         <p className="eyebrow">New listing</p>

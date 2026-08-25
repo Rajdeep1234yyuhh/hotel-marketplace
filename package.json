@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:backfill-booking-references": "tsx scripts/backfill-booking-references.ts"
   },
   "dependencies": {
     "@vercel/blob": "^2.5.0",

@@ -1,17 +1,11 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
 import { TourPackageForm } from "@/components/TourPackageForm";
 
 export default function NewPackagePage() {
-  const session = getSession();
-  if (!session) redirect("/");
-  if (session.role !== "SELLER" && session.role !== "ADMIN") redirect("/browse");
-
   return (
-    <div className="container-page py-10">
-      <Link href="/seller" className="text-sm text-slate transition hover:text-ink">
-        ← Back to dashboard
+    <div>
+      <Link href="/seller/packages" className="text-sm text-slate transition hover:text-ink">
+        ← Back to tour packages
       </Link>
       <div className="mt-4 border-b border-line pb-8">
         <p className="eyebrow">New tour package</p>
@@ -24,7 +18,7 @@ export default function NewPackagePage() {
         </p>
       </div>
       <div className="mt-8">
-        <TourPackageForm />
+        <TourPackageForm redirectTo="/seller/packages" />
       </div>
     </div>
   );

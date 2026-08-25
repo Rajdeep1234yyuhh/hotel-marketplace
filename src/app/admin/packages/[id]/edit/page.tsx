@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { findTourPackageById, itineraryForPackage } from "@/lib/db";
-import { getSession } from "@/lib/session";
 import { TourPackageForm } from "@/components/TourPackageForm";
 
 export default async function AdminEditPackagePage({
@@ -9,19 +8,15 @@ export default async function AdminEditPackagePage({
 }: {
   params: { id: string };
 }) {
-  const session = getSession();
-  if (!session) redirect("/");
-  if (session.role !== "ADMIN") redirect("/browse");
-
   const tourPackage = await findTourPackageById(params.id);
   if (!tourPackage) notFound();
 
   const itinerary = await itineraryForPackage(tourPackage.id);
 
   return (
-    <div className="container-page py-10">
-      <Link href="/admin" className="text-sm text-slate transition hover:text-ink">
-        ← Back to admin overview
+    <div>
+      <Link href="/admin/packages" className="text-sm text-slate transition hover:text-ink">
+        ← Back to tour packages
       </Link>
       <div className="mt-4 border-b border-line pb-8">
         <p className="eyebrow">Super admin</p>
@@ -35,7 +30,7 @@ export default async function AdminEditPackagePage({
       </div>
       <div className="mt-8">
         <TourPackageForm
-          redirectTo="/admin"
+          redirectTo="/admin/packages"
           packageId={tourPackage.id}
           initial={{
             title: tourPackage.title,

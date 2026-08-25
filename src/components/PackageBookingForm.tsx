@@ -22,7 +22,9 @@ export function PackageBookingForm({ packageId, pricePerPerson }: Props) {
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [confirmed, setConfirmed] = useState<{ total: number } | null>(null);
+  const [confirmed, setConfirmed] = useState<{ reference: string; total: number } | null>(
+    null
+  );
 
   const total = useMemo(() => travelers * pricePerPerson, [travelers, pricePerPerson]);
 
@@ -42,7 +44,7 @@ export function PackageBookingForm({ packageId, pricePerPerson }: Props) {
       return;
     }
 
-    setConfirmed({ total: data.booking.total });
+    setConfirmed({ reference: data.booking.reference, total: data.booking.total });
     setSubmitting(false);
     router.refresh();
   }
@@ -57,6 +59,12 @@ export function PackageBookingForm({ packageId, pricePerPerson }: Props) {
         <p className="mt-1 text-sm text-slate">
           {formatMoney(confirmed.total)} total. A confirmation has been recorded for {email}.
         </p>
+        <div className="mt-3 rounded-lg border border-line bg-paper/60 px-3 py-2">
+          <p className="text-xs text-slate">Booking reference</p>
+          <p className="font-display text-base font-bold tracking-wide text-ink">
+            {confirmed.reference}
+          </p>
+        </div>
         <Button
           variant="ghost"
           className="mt-4 w-full"

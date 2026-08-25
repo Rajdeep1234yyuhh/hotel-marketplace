@@ -35,9 +35,9 @@ export function BookingForm({ hotelId, roomCategories }: Props) {
   const [mealPlan, setMealPlan] = useState(selectedCategory?.mealPlans[0] ?? "Room Only");
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [confirmed, setConfirmed] = useState<{ nights: number; total: number } | null>(
-    null
-  );
+  const [confirmed, setConfirmed] = useState<
+    { reference: string; nights: number; total: number } | null
+  >(null);
 
   // Meal plan options depend on which room category is selected — reset to
   // that category's first option whenever the selection changes.
@@ -80,7 +80,11 @@ export function BookingForm({ hotelId, roomCategories }: Props) {
       return;
     }
 
-    setConfirmed({ nights: data.booking.nights, total: data.booking.total });
+    setConfirmed({
+      reference: data.booking.reference,
+      nights: data.booking.nights,
+      total: data.booking.total,
+    });
     setSubmitting(false);
     router.refresh();
   }
@@ -107,6 +111,12 @@ export function BookingForm({ hotelId, roomCategories }: Props) {
           {formatMoney(confirmed.total)} total. A confirmation has been
           recorded for {email}.
         </p>
+        <div className="mt-3 rounded-lg border border-line bg-paper/60 px-3 py-2">
+          <p className="text-xs text-slate">Booking reference</p>
+          <p className="font-display text-base font-bold tracking-wide text-ink">
+            {confirmed.reference}
+          </p>
+        </div>
         <Button
           variant="ghost"
           className="mt-4 w-full"

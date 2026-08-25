@@ -11,18 +11,17 @@ export default async function SellerEditPackagePage({
 }) {
   const session = getSession();
   if (!session) redirect("/");
-  if (session.role !== "SELLER" && session.role !== "ADMIN") redirect("/browse");
 
   const tourPackage = await findTourPackageById(params.id);
   if (!tourPackage) notFound();
-  if (!(await canManageListing(tourPackage, session))) redirect("/seller");
+  if (!(await canManageListing(tourPackage, session))) redirect("/seller/packages");
 
   const itinerary = await itineraryForPackage(tourPackage.id);
 
   return (
-    <div className="container-page py-10">
-      <Link href="/seller" className="text-sm text-slate transition hover:text-ink">
-        ← Back to dashboard
+    <div>
+      <Link href="/seller/packages" className="text-sm text-slate transition hover:text-ink">
+        ← Back to tour packages
       </Link>
       <div className="mt-4 border-b border-line pb-8">
         <p className="eyebrow">Host dashboard</p>
@@ -36,7 +35,7 @@ export default async function SellerEditPackagePage({
       </div>
       <div className="mt-8">
         <TourPackageForm
-          redirectTo="/seller"
+          redirectTo="/seller/packages"
           packageId={tourPackage.id}
           initial={{
             title: tourPackage.title,

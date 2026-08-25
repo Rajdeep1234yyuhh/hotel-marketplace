@@ -4,6 +4,29 @@ export const loginSchema = z.object({
   email: z.string().trim().email("Enter a valid email"),
 });
 
+export const rateOverrideEntrySchema = z.object({
+  roomCategoryId: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
+  rate: z.number().int().positive().nullable(),
+  availableRooms: z.number().int().min(0).nullable(),
+  closed: z.boolean(),
+  minStay: z.number().int().positive().nullable(),
+  maxStay: z.number().int().positive().nullable(),
+});
+
+export const upsertRateOverridesSchema = z.object({
+  entries: z.array(rateOverrideEntrySchema).min(1).max(500),
+});
+
+export const updateRoomCategoryBaseSchema = z
+  .object({
+    pricePerNight: z.coerce.number().int().positive("Price must be greater than 0").optional(),
+    totalRooms: z.coerce.number().int().positive("Must be at least 1").optional(),
+  })
+  .refine((d) => d.pricePerNight !== undefined || d.totalRooms !== undefined, {
+    message: "Provide at least one field to update",
+  });
+
 export const roomCategorySchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80),
   totalRooms: z.coerce.number().int().positive("Must be at least 1"),

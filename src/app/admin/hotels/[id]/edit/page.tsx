@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { findHotelById, roomCategoriesForHotel } from "@/lib/db";
-import { getSession } from "@/lib/session";
 import { HotelForm } from "@/components/HotelForm";
 
 export default async function AdminEditHotelPage({
@@ -9,19 +8,15 @@ export default async function AdminEditHotelPage({
 }: {
   params: { id: string };
 }) {
-  const session = getSession();
-  if (!session) redirect("/");
-  if (session.role !== "ADMIN") redirect("/browse");
-
   const hotel = await findHotelById(params.id);
   if (!hotel) notFound();
 
   const roomCategories = await roomCategoriesForHotel(hotel.id);
 
   return (
-    <div className="container-page py-10">
-      <Link href="/admin" className="text-sm text-slate transition hover:text-ink">
-        ← Back to admin overview
+    <div>
+      <Link href="/admin/hotels" className="text-sm text-slate transition hover:text-ink">
+        ← Back to hotels
       </Link>
       <div className="mt-4 border-b border-line pb-8">
         <p className="eyebrow">Super admin</p>
@@ -35,7 +30,7 @@ export default async function AdminEditHotelPage({
       </div>
       <div className="mt-8">
         <HotelForm
-          redirectTo="/admin"
+          redirectTo="/admin/hotels"
           hotelId={hotel.id}
           initial={{
             name: hotel.name,

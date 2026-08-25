@@ -11,7 +11,6 @@ export default async function SellerEditHotelPage({
 }) {
   const session = getSession();
   if (!session) redirect("/");
-  if (session.role !== "SELLER" && session.role !== "ADMIN") redirect("/browse");
 
   const hotel = await findHotelById(params.id);
   if (!hotel) notFound();
@@ -20,9 +19,9 @@ export default async function SellerEditHotelPage({
   const roomCategories = await roomCategoriesForHotel(hotel.id);
 
   return (
-    <div className="container-page py-10">
+    <div>
       <Link href="/seller" className="text-sm text-slate transition hover:text-ink">
-        ← Back to dashboard
+        ← Back to properties
       </Link>
       <div className="mt-4 border-b border-line pb-8">
         <p className="eyebrow">Host dashboard</p>

@@ -32,6 +32,25 @@ export type RoomCategory = {
   createdAt: string;
 };
 
+/**
+ * A per-date override of a room category's rate/availability, used by the
+ * Rates & Inventories calendar. `id` is `${roomCategoryId}_${date}`. Any
+ * field left `null` falls back to the room category's base value (e.g. a
+ * date with no override at all just uses pricePerNight/totalRooms).
+ */
+export type RateOverride = {
+  id: string;
+  hotelId: string;
+  roomCategoryId: string;
+  date: string;
+  rate: number | null;
+  availableRooms: number | null;
+  closed: boolean;
+  minStay: number | null;
+  maxStay: number | null;
+  updatedAt: string;
+};
+
 export type Hotel = {
   id: string;
   name: string;
@@ -60,6 +79,7 @@ export type Hotel = {
 
 export type Booking = {
   id: string;
+  reference: string;
   hotelId: string;
   guestId: string;
   guestName: string;
@@ -116,6 +136,7 @@ export type TourPackage = {
 
 export type PackageBooking = {
   id: string;
+  reference: string;
   packageId: string;
   guestId: string;
   guestName: string;
@@ -130,6 +151,7 @@ export type PackageBooking = {
 const usersCol = () => getFirestoreDb().collection("users");
 const hotelsCol = () => getFirestoreDb().collection("hotels");
 const roomCategoriesCol = () => getFirestoreDb().collection("roomCategories");
+const rateOverridesCol = () => getFirestoreDb().collection("rateOverrides");
 const bookingsCol = () => getFirestoreDb().collection("bookings");
 const tourPackagesCol = () => getFirestoreDb().collection("tourPackages");
 const itineraryDaysCol = () => getFirestoreDb().collection("itineraryDays");
@@ -137,6 +159,11 @@ const packageBookingsCol = () => getFirestoreDb().collection("packageBookings");
 
 export function newId() {
   return randomUUID();
+}
+
+/** Short, human-readable booking reference — e.g. "HB-7F3A9C2D". */
+function generateBookingReference(prefix: string): string {
+  return `${prefix}-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
 function nowIso() {
@@ -241,6 +268,53 @@ export async function roomCategoriesForHotel(hotelId: string): Promise<RoomCateg
   return snap.docs
     .map((d) => fromDoc<RoomCategory>(d))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+/** Base-rate/base-inventory edit for a single room category (Rates & Inventories "By Room Type" tab). */
+export async function updateRoomCategoryBase(
+  id: string,
+  patch: Partial<Pick<RoomCategory, "pricePerNight" | "totalRooms">>
+): Promise<RoomCategory | null> {
+  const ref = roomCategoriesCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  await ref.update(patch);
+  return { ...fromDoc<RoomCategory>(doc), ...patch };
+}
+
+// ---------------------------------------------------------------------------
+// Rate overrides (Rates & Inventories calendar)
+// ---------------------------------------------------------------------------
+
+export async function listRateOverridesForHotel(hotelId: string): Promise<RateOverride[]> {
+  const snap = await rateOverridesCol().where("hotelId", "==", hotelId).get();
+  return snap.docs.map((d) => fromDoc<RateOverride>(d));
+}
+
+export type RateOverrideInput = {
+  roomCategoryId: string;
+  date: string;
+  rate: number | null;
+  availableRooms: number | null;
+  closed: boolean;
+  minStay: number | null;
+  maxStay: number | null;
+};
+
+/** Batch upsert — one doc per (roomCategoryId, date), id-keyed so re-saving the same cell overwrites it. */
+export async function upsertRateOverrides(
+  hotelId: string,
+  entries: RateOverrideInput[]
+): Promise<void> {
+  const updatedAt = nowIso();
+  for (let i = 0; i < entries.length; i += 450) {
+    const batch = getFirestoreDb().batch();
+    entries.slice(i, i + 450).forEach((e) => {
+      const id = `${e.roomCategoryId}_${e.date}`;
+      batch.set(rateOverridesCol().doc(id), { ...e, hotelId, updatedAt }, { merge: true });
+    });
+    await batch.commit();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -359,6 +433,7 @@ export async function deleteHotel(id: string): Promise<boolean> {
   await Promise.all([
     deleteAll(roomCategoriesCol().where("hotelId", "==", id)),
     deleteAll(bookingsCol().where("hotelId", "==", id)),
+    deleteAll(rateOverridesCol().where("hotelId", "==", id)),
   ]);
   await ref.delete();
   return true;
@@ -397,10 +472,15 @@ export async function removeHotelManager(id: string, email: string): Promise<Hot
 // ---------------------------------------------------------------------------
 
 export async function createBooking(
-  input: Omit<Booking, "id" | "createdAt" | "status">
+  input: Omit<Booking, "id" | "createdAt" | "status" | "reference">
 ): Promise<Booking> {
   const id = newId();
-  const data = { ...input, status: "CONFIRMED", createdAt: nowIso() };
+  const data = {
+    ...input,
+    status: "CONFIRMED",
+    reference: generateBookingReference("HB"),
+    createdAt: nowIso(),
+  };
   await bookingsCol().doc(id).set(data);
   return { id, ...data };
 }
@@ -429,6 +509,22 @@ export async function bookingCountsByHotel(): Promise<Record<string, number>> {
     counts[hotelId] = (counts[hotelId] ?? 0) + 1;
   }
   return counts;
+}
+
+export async function findBookingById(id: string): Promise<Booking | null> {
+  const doc = await bookingsCol().doc(id).get();
+  return doc.exists ? fromDoc<Booking>(doc) : null;
+}
+
+export async function updateBookingStatus(
+  id: string,
+  status: "CONFIRMED" | "CANCELLED"
+): Promise<Booking | null> {
+  const ref = bookingsCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  await ref.update({ status });
+  return { ...fromDoc<Booking>(doc), status };
 }
 
 // ---------------------------------------------------------------------------
@@ -600,10 +696,15 @@ export async function removePackageManager(
 // ---------------------------------------------------------------------------
 
 export async function createPackageBooking(
-  input: Omit<PackageBooking, "id" | "createdAt" | "status">
+  input: Omit<PackageBooking, "id" | "createdAt" | "status" | "reference">
 ): Promise<PackageBooking> {
   const id = newId();
-  const data = { ...input, status: "CONFIRMED", createdAt: nowIso() };
+  const data = {
+    ...input,
+    status: "CONFIRMED",
+    reference: generateBookingReference("TP"),
+    createdAt: nowIso(),
+  };
   await packageBookingsCol().doc(id).set(data);
   return { id, ...data };
 }
@@ -632,4 +733,41 @@ export async function packageBookingCountsByPackage(): Promise<Record<string, nu
     counts[packageId] = (counts[packageId] ?? 0) + 1;
   }
   return counts;
+}
+
+/**
+ * One-off backfill for bookings created before the reference field existed.
+ * Safe to run more than once — only touches docs that don't already have one.
+ */
+export async function backfillBookingReferences(): Promise<{
+  bookings: number;
+  packageBookings: number;
+}> {
+  const [bookingsSnap, packageBookingsSnap] = await Promise.all([
+    bookingsCol().get(),
+    packageBookingsCol().get(),
+  ]);
+
+  const missingBookings = bookingsSnap.docs.filter((d) => !(d.data() as Booking).reference);
+  const missingPackageBookings = packageBookingsSnap.docs.filter(
+    (d) => !(d.data() as PackageBooking).reference
+  );
+
+  for (let i = 0; i < missingBookings.length; i += 450) {
+    const batch = getFirestoreDb().batch();
+    missingBookings
+      .slice(i, i + 450)
+      .forEach((d) => batch.update(d.ref, { reference: generateBookingReference("HB") }));
+    await batch.commit();
+  }
+
+  for (let i = 0; i < missingPackageBookings.length; i += 450) {
+    const batch = getFirestoreDb().batch();
+    missingPackageBookings
+      .slice(i, i + 450)
+      .forEach((d) => batch.update(d.ref, { reference: generateBookingReference("TP") }));
+    await batch.commit();
+  }
+
+  return { bookings: missingBookings.length, packageBookings: missingPackageBookings.length };
 }
