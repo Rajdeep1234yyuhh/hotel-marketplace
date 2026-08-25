@@ -19,7 +19,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
       <div className="border-b border-line pb-8">
         <p className="eyebrow">Host dashboard</p>
         <h1 className="mt-2 font-display text-4xl font-bold tracking-tight text-ink">
-          Your listings
+          Your Extranet
         </h1>
         <p className="mt-2 text-slate">
           Manage the properties and tour packages you own or have been given access to.
