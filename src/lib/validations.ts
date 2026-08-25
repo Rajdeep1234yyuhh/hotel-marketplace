@@ -4,6 +4,15 @@ export const loginSchema = z.object({
   email: z.string().trim().email("Enter a valid email"),
 });
 
+export const updateBookingReferenceSchema = z.object({
+  reference: z
+    .string()
+    .trim()
+    .min(4, "Reference is too short")
+    .max(40, "Reference is too long")
+    .regex(/^[A-Za-z0-9-]+$/, "Only letters, numbers, and hyphens allowed"),
+});
+
 export const rateOverrideEntrySchema = z.object({
   roomCategoryId: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),

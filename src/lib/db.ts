@@ -515,6 +515,34 @@ export async function updateBookingStatus(
   return { ...fromDoc<Booking>(doc), status };
 }
 
+/**
+ * References are shown to guests/hosts as the single lookup id for a stay,
+ * so they must be unique across both hotel and package bookings, not just
+ * within one collection.
+ */
+export async function isBookingReferenceTaken(
+  reference: string,
+  exclude?: { bookingId?: string; packageBookingId?: string }
+): Promise<boolean> {
+  const normalized = reference.trim().toUpperCase();
+  const [bookingSnap, packageSnap] = await Promise.all([
+    bookingsCol().where("reference", "==", normalized).get(),
+    packageBookingsCol().where("reference", "==", normalized).get(),
+  ]);
+  const bookingTaken = bookingSnap.docs.some((d) => d.id !== exclude?.bookingId);
+  const packageTaken = packageSnap.docs.some((d) => d.id !== exclude?.packageBookingId);
+  return bookingTaken || packageTaken;
+}
+
+export async function updateBookingReference(id: string, reference: string): Promise<Booking | null> {
+  const ref = bookingsCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const normalized = reference.trim().toUpperCase();
+  await ref.update({ reference: normalized });
+  return { ...fromDoc<Booking>(doc), reference: normalized };
+}
+
 // ---------------------------------------------------------------------------
 // Itinerary days
 // ---------------------------------------------------------------------------
@@ -695,6 +723,23 @@ export async function createPackageBooking(
   };
   await packageBookingsCol().doc(id).set(data);
   return { id, ...data };
+}
+
+export async function findPackageBookingById(id: string): Promise<PackageBooking | null> {
+  const doc = await packageBookingsCol().doc(id).get();
+  return doc.exists ? fromDoc<PackageBooking>(doc) : null;
+}
+
+export async function updatePackageBookingReference(
+  id: string,
+  reference: string
+): Promise<PackageBooking | null> {
+  const ref = packageBookingsCol().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const normalized = reference.trim().toUpperCase();
+  await ref.update({ reference: normalized });
+  return { ...fromDoc<PackageBooking>(doc), reference: normalized };
 }
 
 export async function countPackageBookings(where?: { packageId?: string }): Promise<number> {

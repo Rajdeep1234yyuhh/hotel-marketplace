@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/validations";
 import { BookingsFilters } from "@/components/BookingsFilters";
 import { CancelBookingButton } from "@/components/CancelBookingButton";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { EditableReference } from "@/components/EditableReference";
 
 export const dynamic = "force-dynamic";
 
@@ -204,8 +205,8 @@ export default async function SellerBookingsPage({
           <tbody className="divide-y divide-line">
             {pageRows.map((b) => (
               <tr key={b.id} className="transition hover:bg-paper/50">
-                <td className="px-4 py-4 font-mono text-xs font-medium text-ink">
-                  {b.reference || "—"}
+                <td className="px-4 py-4">
+                  <EditableReference reference={b.reference ?? ""} apiPath={`/api/bookings/${b.id}`} />
                 </td>
                 <td className="px-4 py-4 text-slate">
                   <p className="text-ink">{b.guestName}</p>

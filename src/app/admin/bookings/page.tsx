@@ -4,6 +4,7 @@ import { listHotels, listTourPackages, listBookings, listPackageBookings } from 
 import { formatMoney } from "@/lib/validations";
 import { AdminBookingsFilters } from "@/components/AdminBookingsFilters";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { EditableReference } from "@/components/EditableReference";
 
 export const dynamic = "force-dynamic";
 
@@ -143,8 +144,15 @@ export default async function AdminBookingsPage({
           <tbody className="divide-y divide-line">
             {pageRows.map((b) => (
               <tr key={`${b.kind}-${b.id}`} className="transition hover:bg-paper/50">
-                <td className="px-4 py-4 font-mono text-xs font-medium text-ink">
-                  {b.reference || "—"}
+                <td className="px-4 py-4">
+                  <EditableReference
+                    reference={b.reference ?? ""}
+                    apiPath={
+                      b.typeParam === "hotel"
+                        ? `/api/bookings/${b.id}`
+                        : `/api/package-bookings/${b.id}`
+                    }
+                  />
                 </td>
                 <td className="px-4 py-4">
                   <span

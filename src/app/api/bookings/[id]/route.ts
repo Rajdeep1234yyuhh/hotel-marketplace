@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
-import { findBookingById, findHotelById, updateBookingStatus } from "@/lib/db";
+import {
+  findBookingById,
+  findHotelById,
+  updateBookingStatus,
+  updateBookingReference,
+  isBookingReferenceTaken,
+} from "@/lib/db";
 import { getSession, canManageListing } from "@/lib/session";
+import { updateBookingReferenceSchema } from "@/lib/validations";
 
-// PATCH /api/bookings/[id] — cancel a booking. Owner, granted manager, or
-// super admin only (same access as managing the hotel it belongs to).
+// PATCH /api/bookings/[id] — cancel a booking, or edit its reference.
+// Owner, granted manager, or super admin only (same access as managing the
+// hotel it belongs to).
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
@@ -27,10 +35,34 @@ export async function PATCH(
   }
 
   const body = await req.json().catch(() => null);
-  if (body?.status !== "CANCELLED") {
-    return NextResponse.json({ error: "Unsupported status change" }, { status: 400 });
+
+  if (body?.status === "CANCELLED") {
+    const updated = await updateBookingStatus(params.id, "CANCELLED");
+    return NextResponse.json({ booking: updated });
   }
 
-  const updated = await updateBookingStatus(params.id, "CANCELLED");
-  return NextResponse.json({ booking: updated });
+  if (typeof body?.reference === "string") {
+    const parsed = updateBookingReferenceSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const taken = await isBookingReferenceTaken(parsed.data.reference, {
+      bookingId: params.id,
+    });
+    if (taken) {
+      return NextResponse.json(
+        { error: { reference: ["This reference is already in use"] } },
+        { status: 409 }
+      );
+    }
+
+    const updated = await updateBookingReference(params.id, parsed.data.reference);
+    return NextResponse.json({ booking: updated });
+  }
+
+  return NextResponse.json({ error: "Unsupported update" }, { status: 400 });
 }
