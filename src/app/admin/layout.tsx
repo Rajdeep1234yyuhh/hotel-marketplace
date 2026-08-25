@@ -5,6 +5,7 @@ import { DashboardSidebar } from "@/components/DashboardSidebar";
 const NAV_ITEMS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/hotels", label: "Hotels" },
+  { href: "/admin/rates", label: "Rates & Inventories" },
   { href: "/admin/packages", label: "Tour Packages" },
   { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/users", label: "Users" },

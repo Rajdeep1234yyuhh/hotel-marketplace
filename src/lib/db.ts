@@ -270,18 +270,6 @@ export async function roomCategoriesForHotel(hotelId: string): Promise<RoomCateg
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-/** Base-rate/base-inventory edit for a single room category (Rates & Inventories "By Room Type" tab). */
-export async function updateRoomCategoryBase(
-  id: string,
-  patch: Partial<Pick<RoomCategory, "pricePerNight" | "totalRooms">>
-): Promise<RoomCategory | null> {
-  const ref = roomCategoriesCol().doc(id);
-  const doc = await ref.get();
-  if (!doc.exists) return null;
-  await ref.update(patch);
-  return { ...fromDoc<RoomCategory>(doc), ...patch };
-}
-
 // ---------------------------------------------------------------------------
 // Rate overrides (Rates & Inventories calendar)
 // ---------------------------------------------------------------------------

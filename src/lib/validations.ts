@@ -18,15 +18,6 @@ export const upsertRateOverridesSchema = z.object({
   entries: z.array(rateOverrideEntrySchema).min(1).max(500),
 });
 
-export const updateRoomCategoryBaseSchema = z
-  .object({
-    pricePerNight: z.coerce.number().int().positive("Price must be greater than 0").optional(),
-    totalRooms: z.coerce.number().int().positive("Must be at least 1").optional(),
-  })
-  .refine((d) => d.pricePerNight !== undefined || d.totalRooms !== undefined, {
-    message: "Provide at least one field to update",
-  });
-
 export const roomCategorySchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80),
   totalRooms: z.coerce.number().int().positive("Must be at least 1"),
