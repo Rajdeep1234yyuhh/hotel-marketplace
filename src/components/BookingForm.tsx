@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { formatMoney } from "@/lib/validations";
+import { formatMoney, MAX_STAY_NIGHTS } from "@/lib/validations";
 import { useRoomSelection } from "@/components/RoomSelectionContext";
 
 type RoomCategoryOption = {
@@ -32,14 +32,23 @@ function isoToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function addDays(dateStr: string, n: number) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Bounded by MAX_STAY_NIGHTS so a wildly out-of-range checkout date (easy to
+// hit by scrolling a native date picker's year field too far) can't spin
+// this into a loop over hundreds of thousands of days.
 function datesBetween(checkIn: string, checkOut: string): string[] {
   const dates: string[] = [];
   let d = checkIn;
-  while (d < checkOut) {
+  let guard = 0;
+  while (d < checkOut && guard <= MAX_STAY_NIGHTS) {
     dates.push(d);
-    const next = new Date(`${d}T00:00:00`);
-    next.setDate(next.getDate() + 1);
-    d = next.toISOString().slice(0, 10);
+    d = addDays(d, 1);
+    guard++;
   }
   return dates;
 }
@@ -76,10 +85,18 @@ export function BookingForm({ hotelId, roomCategories, rateOverrides }: Props) {
   const effectiveRate = selectedCategory?.pricePerNight ?? 0;
   const availableMealPlans = selectedCategory?.mealPlans ?? ["Room Only"];
 
-  const nightDates =
-    checkIn && checkOut && new Date(checkOut) > new Date(checkIn)
-      ? datesBetween(checkIn, checkOut)
-      : [];
+  const rawNights =
+    checkIn && checkOut
+      ? (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000
+      : 0;
+  const isValidRange = rawNights > 0;
+  const exceedsMaxStay = isValidRange && rawNights > MAX_STAY_NIGHTS;
+
+  const nightDates = useMemo(() => {
+    if (!isValidRange || exceedsMaxStay) return [];
+    return datesBetween(checkIn, checkOut);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkIn, checkOut, isValidRange, exceedsMaxStay]);
 
   const nightBreakdown = useMemo(
     () =>
@@ -249,10 +266,14 @@ export function BookingForm({ hotelId, roomCategories, rateOverrides }: Props) {
             id="checkOut"
             type="date"
             min={checkIn || isoToday()}
+            max={addDays(checkIn || isoToday(), MAX_STAY_NIGHTS)}
             className="field-input"
             value={checkOut}
             onChange={(e) => setCheckOut(e.target.value)}
           />
+          {exceedsMaxStay && (
+            <p className="field-error">Stays can&apos;t be longer than {MAX_STAY_NIGHTS} nights</p>
+          )}
           {errors.checkOut && <p className="field-error">{errors.checkOut[0]}</p>}
         </div>
       </div>

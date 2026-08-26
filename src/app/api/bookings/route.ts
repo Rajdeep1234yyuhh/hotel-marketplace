@@ -7,16 +7,21 @@ import {
   createBooking,
   listRateOverridesForHotel,
 } from "@/lib/db";
-import { createBookingSchema, nightsBetween } from "@/lib/validations";
+import { createBookingSchema, nightsBetween, MAX_STAY_NIGHTS } from "@/lib/validations";
 
+// Bounded by MAX_STAY_NIGHTS as defense-in-depth — createBookingSchema
+// already rejects an oversized range before this runs, but this keeps the
+// loop itself safe regardless of caller.
 function datesBetween(checkIn: string, checkOut: string): string[] {
   const dates: string[] = [];
   let d = checkIn;
-  while (d < checkOut) {
+  let guard = 0;
+  while (d < checkOut && guard <= MAX_STAY_NIGHTS) {
     dates.push(d);
     const next = new Date(`${d}T00:00:00`);
     next.setDate(next.getDate() + 1);
     d = next.toISOString().slice(0, 10);
+    guard++;
   }
   return dates;
 }

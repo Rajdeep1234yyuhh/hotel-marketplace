@@ -88,6 +88,8 @@ export const updateUserRoleSchema = z.object({
   role: z.enum(["BUYER", "SELLER", "ADMIN"]),
 });
 
+export const MAX_STAY_NIGHTS = 90;
+
 export const createBookingSchema = z
   .object({
     hotelId: z.string().min(1),
@@ -102,7 +104,17 @@ export const createBookingSchema = z
   .refine((d) => new Date(d.checkOut) > new Date(d.checkIn), {
     message: "Check-out must be after check-in",
     path: ["checkOut"],
-  });
+  })
+  .refine(
+    (d) => {
+      const nights = (new Date(d.checkOut).getTime() - new Date(d.checkIn).getTime()) / 86400000;
+      return nights <= MAX_STAY_NIGHTS;
+    },
+    {
+      message: `Stays can't be longer than ${MAX_STAY_NIGHTS} nights`,
+      path: ["checkOut"],
+    }
+  );
 
 export const itineraryDaySchema = z.object({
   dayNumber: z.coerce.number().int().positive(),
