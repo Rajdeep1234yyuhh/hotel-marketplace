@@ -12,6 +12,14 @@ function todayISO() {
 const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTH_LABEL_FMT = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" });
 
+function compactPrice(n: number): string {
+  if (n >= 1000) {
+    const thousands = Math.round(n / 100) / 10;
+    return `${thousands % 1 === 0 ? thousands.toFixed(0) : thousands}k`;
+  }
+  return String(n);
+}
+
 function monthWeeks(year: number, month: number): (string | null)[][] {
   const firstDay = new Date(year, month, 1);
   const startWeekday = firstDay.getDay();
@@ -31,6 +39,7 @@ export function CalendarRangePicker({
   onChange,
   minDate = todayISO(),
   maxDate,
+  priceForDate,
 }: {
   from: string;
   to: string;
@@ -39,6 +48,8 @@ export function CalendarRangePicker({
   /** Selection and month navigation are both bounded by this so a stray
    * click can't create a huge (and expensive to apply) date range. */
   maxDate?: string;
+  /** Optional — shows a small rate under each date when provided. */
+  priceForDate?: (date: string) => number | null | undefined;
 }) {
   const today = todayISO();
   const [anchor, setAnchor] = useState(() => {
@@ -99,6 +110,7 @@ export function CalendarRangePicker({
             if (!date) return <span key={i} />;
             const dayNum = Number(date.slice(8, 10));
             const isToday = date === today;
+            const price = priceForDate?.(date);
             return (
               <button
                 key={date}
@@ -106,17 +118,26 @@ export function CalendarRangePicker({
                 disabled={state === "disabled"}
                 onMouseEnter={() => setHoverDate(date)}
                 onClick={() => handleDayClick(date)}
-                className={`mx-auto flex h-8 w-8 items-center justify-center text-xs transition ${
+                className={`mx-auto flex h-11 w-11 flex-col items-center justify-center rounded-lg text-xs transition ${
                   state === "disabled"
                     ? "cursor-not-allowed text-slate/30"
                     : state === "endpoint"
-                    ? "rounded-full bg-accent font-semibold text-white"
+                    ? "bg-accent font-semibold text-white"
                     : state === "in-range" || state === "preview"
                     ? "bg-accent/15 text-accent-deep"
                     : "text-ink hover:bg-paper"
                 } ${isToday && state === "default" ? "ring-1 ring-inset ring-accent/40" : ""}`}
               >
-                {dayNum}
+                <span>{dayNum}</span>
+                {price != null && (
+                  <span
+                    className={`text-[9px] leading-none ${
+                      state === "endpoint" ? "text-white/85" : "text-slate"
+                    }`}
+                  >
+                    ₹{compactPrice(price)}
+                  </span>
+                )}
               </button>
             );
           })}

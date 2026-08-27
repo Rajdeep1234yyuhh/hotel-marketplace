@@ -525,8 +525,19 @@ export function RatesGrid({
                   setCalTo(to);
                   setCalAppliedSummary("");
                 }}
+                priceForDate={(date) => {
+                  const rcId = calRoomCategoryIds[0] ?? roomCategories[0]?.id;
+                  return rcId ? getCell(rcId, date).rate : null;
+                }}
               />
             </div>
+            {calRoomCategoryIds.length > 1 && (
+              <p className="mt-1 text-[11px] text-slate">
+                Rates shown are for{" "}
+                {roomCategoryById.get(calRoomCategoryIds[0])?.name ?? "the first selected room type"}
+                .
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
