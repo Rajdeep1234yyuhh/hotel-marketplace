@@ -527,17 +527,35 @@ export function RatesGrid({
                 }}
                 priceForDate={(date) => {
                   const rcId = calRoomCategoryIds[0] ?? roomCategories[0]?.id;
-                  return rcId ? getCell(rcId, date).rate : null;
+                  if (!rcId) return null;
+                  // Preview the pending rate across the whole selected
+                  // range as it's typed, not just the currently saved one.
+                  if (calFrom && calTo && calRate.trim() && date >= calFrom && date <= calTo) {
+                    return Number(calRate);
+                  }
+                  return getCell(rcId, date).rate;
                 }}
+                isPendingPrice={(date) =>
+                  !!(calFrom && calTo && calRate.trim() && date >= calFrom && date <= calTo)
+                }
               />
             </div>
-            {calRoomCategoryIds.length > 1 && (
-              <p className="mt-1 text-[11px] text-slate">
-                Rates shown are for{" "}
-                {roomCategoryById.get(calRoomCategoryIds[0])?.name ?? "the first selected room type"}
-                .
-              </p>
-            )}
+            <p className="mt-1 text-[11px] text-slate">
+              {calRoomCategoryIds.length > 1 && (
+                <>
+                  Rates shown are for{" "}
+                  {roomCategoryById.get(calRoomCategoryIds[0])?.name ??
+                    "the first selected room type"}
+                  .{" "}
+                </>
+              )}
+              {calFrom && calTo && calRate.trim() && (
+                <>
+                  <span className="font-bold text-accent-deep">*</span> = not yet saved — preview
+                  of the rate you&apos;re about to apply.
+                </>
+              )}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

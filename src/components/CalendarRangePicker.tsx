@@ -40,6 +40,7 @@ export function CalendarRangePicker({
   minDate = todayISO(),
   maxDate,
   priceForDate,
+  isPendingPrice,
 }: {
   from: string;
   to: string;
@@ -50,6 +51,8 @@ export function CalendarRangePicker({
   maxDate?: string;
   /** Optional — shows a small rate under each date when provided. */
   priceForDate?: (date: string) => number | null | undefined;
+  /** Optional — styles that date's price as a not-yet-saved preview. */
+  isPendingPrice?: (date: string) => boolean;
 }) {
   const today = todayISO();
   const [anchor, setAnchor] = useState(() => {
@@ -111,6 +114,7 @@ export function CalendarRangePicker({
             const dayNum = Number(date.slice(8, 10));
             const isToday = date === today;
             const price = priceForDate?.(date);
+            const pending = price != null && isPendingPrice?.(date);
             return (
               <button
                 key={date}
@@ -132,10 +136,17 @@ export function CalendarRangePicker({
                 {price != null && (
                   <span
                     className={`text-[9px] leading-none ${
-                      state === "endpoint" ? "text-white/85" : "text-slate"
+                      pending
+                        ? state === "endpoint"
+                          ? "font-bold text-white"
+                          : "font-bold text-accent-deep"
+                        : state === "endpoint"
+                        ? "text-white/85"
+                        : "text-slate"
                     }`}
                   >
                     ₹{compactPrice(price)}
+                    {pending ? "*" : ""}
                   </span>
                 )}
               </button>
