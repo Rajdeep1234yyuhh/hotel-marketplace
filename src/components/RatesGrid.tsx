@@ -253,6 +253,10 @@ export function RatesGrid({
   const [calTo, setCalTo] = useState(todayISO());
   const [calRate, setCalRate] = useState("");
   const [calAvailability, setCalAvailability] = useState("");
+  // Closed (false) once a range has been successfully applied — shows a
+  // collapsed "Applied" summary instead of the picker until the user asks
+  // to change dates again.
+  const [calendarOpen, setCalendarOpen] = useState(true);
 
   function toggleCalRoomCategory(id: string) {
     setCalRoomCategoryIds((prev) =>
@@ -305,6 +309,7 @@ export function RatesGrid({
       setMessage(
         `Applied to ${dates.length} date(s) across ${calRoomCategoryIds.length} room type(s).`
       );
+      setCalendarOpen(false);
     }
   }
 
@@ -486,17 +491,39 @@ export function RatesGrid({
 
           <div>
             <p className="field-label">Dates</p>
-            <div className="rounded-lg border border-line p-3">
-              <CalendarRangePicker
-                from={calFrom}
-                to={calTo}
-                maxDate={addDays(todayISO(), CALENDAR_MAX_DAYS_OUT)}
-                onChange={(from, to) => {
-                  setCalFrom(from);
-                  setCalTo(to);
-                }}
-              />
-            </div>
+            {calendarOpen ? (
+              <div className="rounded-lg border border-line p-3">
+                <CalendarRangePicker
+                  from={calFrom}
+                  to={calTo}
+                  maxDate={addDays(todayISO(), CALENDAR_MAX_DAYS_OUT)}
+                  onChange={(from, to) => {
+                    setCalFrom(from);
+                    setCalTo(to);
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">
+                    ✓
+                  </span>
+                  <span className="font-medium text-emerald-800">
+                    {new Date(`${calFrom}T00:00:00`).toLocaleDateString()} –{" "}
+                    {new Date(`${calTo}T00:00:00`).toLocaleDateString()}
+                  </span>
+                  <span className="text-emerald-700">Applied</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCalendarOpen(true)}
+                  className="text-xs font-medium text-emerald-800 underline underline-offset-2 hover:text-emerald-900"
+                >
+                  Change dates
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
