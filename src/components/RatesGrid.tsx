@@ -36,6 +36,11 @@ type EntryPayload = {
 };
 
 const DAY_COLUMNS = 8;
+// Bounds for the "By Calendar" range picker/apply — keeps a stray far-future
+// click from building a huge date list (slow to compute) or a payload the
+// API would reject anyway (upsertRateOverridesSchema caps at 500 entries).
+const CALENDAR_MAX_DAYS_OUT = 365;
+const MAX_CALENDAR_ENTRIES = 500;
 
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -61,9 +66,11 @@ function cellKey(roomCategoryId: string, date: string) {
 function datesInRange(from: string, to: string): string[] {
   const dates: string[] = [];
   let d = from;
-  while (d <= to) {
+  let guard = 0;
+  while (d <= to && guard <= CALENDAR_MAX_DAYS_OUT) {
     dates.push(d);
     d = addDays(d, 1);
+    guard++;
   }
   return dates;
 }
@@ -267,17 +274,31 @@ export function RatesGrid({
       return;
     }
     const dates = datesInRange(calFrom, calTo);
+    if (dates.length * calRoomCategoryIds.length > MAX_CALENDAR_ENTRIES) {
+      setMessage(
+        `That's too many date/room-type combinations at once (max ${MAX_CALENDAR_ENTRIES}). Pick a smaller range or fewer room types.`
+      );
+      return;
+    }
+
     const patch: Partial<CellValue> = { closed: false };
     if (calRate.trim()) patch.rate = Number(calRate);
     if (calAvailability.trim()) patch.availableRooms = Number(calAvailability);
 
     const payload: EntryPayload[] = [];
+    const newValues: Record<string, CellValue> = {};
     calRoomCategoryIds.forEach((roomCategoryId) => {
       dates.forEach((date) => {
         const current = getCell(roomCategoryId, date);
-        payload.push({ roomCategoryId, date, ...current, ...patch });
+        const merged = { ...current, ...patch };
+        newValues[cellKey(roomCategoryId, date)] = merged;
+        payload.push({ roomCategoryId, date, ...merged });
       });
     });
+
+    // Reflect the change locally right away — Save/Apply shouldn't feel
+    // stuck waiting on the network round trip and page refresh.
+    setCells((prev) => ({ ...prev, ...newValues }));
 
     const ok = await postEntries(payload);
     if (ok) {
@@ -469,6 +490,7 @@ export function RatesGrid({
               <CalendarRangePicker
                 from={calFrom}
                 to={calTo}
+                maxDate={addDays(todayISO(), CALENDAR_MAX_DAYS_OUT)}
                 onChange={(from, to) => {
                   setCalFrom(from);
                   setCalTo(to);

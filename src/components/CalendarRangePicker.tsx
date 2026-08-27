@@ -30,11 +30,15 @@ export function CalendarRangePicker({
   to,
   onChange,
   minDate = todayISO(),
+  maxDate,
 }: {
   from: string;
   to: string;
   onChange: (from: string, to: string) => void;
   minDate?: string;
+  /** Selection and month navigation are both bounded by this so a stray
+   * click can't create a huge (and expensive to apply) date range. */
+  maxDate?: string;
 }) {
   const today = todayISO();
   const [anchor, setAnchor] = useState(() => {
@@ -43,8 +47,12 @@ export function CalendarRangePicker({
   });
   const [hoverDate, setHoverDate] = useState<string | null>(null);
 
+  function isOutOfRange(date: string) {
+    return date < minDate || (!!maxDate && date > maxDate);
+  }
+
   function handleDayClick(date: string) {
-    if (date < minDate) return;
+    if (isOutOfRange(date)) return;
     if (!from || (from && to)) {
       onChange(date, "");
     } else if (date < from) {
@@ -57,13 +65,14 @@ export function CalendarRangePicker({
   function shiftMonth(delta: number) {
     setAnchor((a) => {
       const d = new Date(a.year, a.month + delta, 1);
+      if (maxDate && delta > 0 && toISODate(d) > maxDate) return a;
       return { year: d.getFullYear(), month: d.getMonth() };
     });
   }
 
   function dayState(date: string | null) {
     if (!date) return "empty";
-    if (date < minDate) return "disabled";
+    if (isOutOfRange(date)) return "disabled";
     if (date === from || date === to) return "endpoint";
     if (from && to && date > from && date < to) return "in-range";
     if (from && !to && hoverDate && hoverDate >= from && date > from && date <= hoverDate) {
@@ -117,6 +126,7 @@ export function CalendarRangePicker({
   }
 
   const nextAnchor = new Date(anchor.year, anchor.month + 1, 1);
+  const atMax = !!maxDate && toISODate(nextAnchor) > maxDate;
 
   return (
     <div onMouseLeave={() => setHoverDate(null)}>
@@ -136,7 +146,8 @@ export function CalendarRangePicker({
         <button
           type="button"
           onClick={() => shiftMonth(1)}
-          className="rounded-lg border border-line px-2 py-1 text-xs font-medium text-ink transition hover:border-ink/40"
+          disabled={atMax}
+          className="rounded-lg border border-line px-2 py-1 text-xs font-medium text-ink transition hover:border-ink/40 disabled:cursor-not-allowed disabled:opacity-40"
         >
           ›
         </button>
