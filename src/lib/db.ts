@@ -282,15 +282,21 @@ export async function roomCategoriesForHotel(hotelId: string): Promise<RoomCateg
 const RATE_OVERRIDE_WINDOW_PAST_DAYS = 30;
 const RATE_OVERRIDE_WINDOW_FUTURE_DAYS = 400;
 
+function toISODateUTC(d: Date) {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(
+    d.getUTCDate()
+  ).padStart(2, "0")}`;
+}
+
 export async function listRateOverridesForHotel(hotelId: string): Promise<RateOverride[]> {
   const snap = await rateOverridesCol().where("hotelId", "==", hotelId).get();
   const now = new Date();
   const from = new Date(now);
-  from.setDate(from.getDate() - RATE_OVERRIDE_WINDOW_PAST_DAYS);
+  from.setUTCDate(from.getUTCDate() - RATE_OVERRIDE_WINDOW_PAST_DAYS);
   const to = new Date(now);
-  to.setDate(to.getDate() + RATE_OVERRIDE_WINDOW_FUTURE_DAYS);
-  const fromStr = from.toISOString().slice(0, 10);
-  const toStr = to.toISOString().slice(0, 10);
+  to.setUTCDate(to.getUTCDate() + RATE_OVERRIDE_WINDOW_FUTURE_DAYS);
+  const fromStr = toISODateUTC(from);
+  const toStr = toISODateUTC(to);
   return snap.docs
     .map((d) => fromDoc<RateOverride>(d))
     .filter((o) => o.date >= fromStr && o.date <= toStr);

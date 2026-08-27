@@ -2,8 +2,15 @@
 
 import { useState } from "react";
 
+// Local-date getters, not toISOString() (which is UTC) — d is always
+// constructed in local time here, and mixing local construction with UTC
+// extraction silently shifts the date by a day in any timezone ahead of
+// UTC (e.g. IST), which also broke date-range math built on top of this.
 function toISODate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 function todayISO() {
   return toISODate(new Date());

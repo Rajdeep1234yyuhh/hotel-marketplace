@@ -12,14 +12,20 @@ import { createBookingSchema, nightsBetween, MAX_STAY_NIGHTS } from "@/lib/valid
 // Bounded by MAX_STAY_NIGHTS as defense-in-depth — createBookingSchema
 // already rejects an oversized range before this runs, but this keeps the
 // loop itself safe regardless of caller.
+//
+// Date math is done entirely in UTC (Date.UTC to construct, getUTC* to
+// extract) rather than mixing a local-time constructor with toISOString()
+// (UTC) — that mismatch silently made "next day" a no-op in any timezone
+// ahead of UTC, so every multi-night booking priced as if guard+1 nights
+// had elapsed instead of the actual stay length.
 function datesBetween(checkIn: string, checkOut: string): string[] {
   const dates: string[] = [];
   let d = checkIn;
   let guard = 0;
   while (d < checkOut && guard <= MAX_STAY_NIGHTS) {
     dates.push(d);
-    const next = new Date(`${d}T00:00:00`);
-    next.setDate(next.getDate() + 1);
+    const [y, m, day] = d.split("-").map(Number);
+    const next = new Date(Date.UTC(y, m - 1, day + 1));
     d = next.toISOString().slice(0, 10);
     guard++;
   }

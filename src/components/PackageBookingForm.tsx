@@ -10,8 +10,14 @@ type Props = {
   pricePerPerson: number;
 };
 
+// Local-date getters, not toISOString() (UTC) — avoids showing "today" as
+// yesterday for anyone in a timezone ahead of UTC during early-morning hours.
 function isoToday() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function PackageBookingForm({ packageId, pricePerPerson }: Props) {

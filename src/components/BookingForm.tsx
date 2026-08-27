@@ -28,14 +28,26 @@ type Props = {
   rateOverrides: RateOverrideLite[];
 };
 
+// Local-date getters, not toISOString() (UTC) — new Date(...) below is
+// always constructed in local time, and mixing local construction with UTC
+// extraction silently shifts dates by a day in any timezone ahead of UTC
+// (e.g. IST) — which previously made addDays(d, 1) a no-op and broke
+// multi-night pricing entirely.
+function toISODate(d: Date) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function isoToday() {
-  return new Date().toISOString().slice(0, 10);
+  return toISODate(new Date());
 }
 
 function addDays(dateStr: string, n: number) {
   const d = new Date(`${dateStr}T00:00:00`);
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  return toISODate(d);
 }
 
 // Bounded by MAX_STAY_NIGHTS so a wildly out-of-range checkout date (easy to

@@ -12,8 +12,13 @@ import { RatesGrid } from "@/components/RatesGrid";
 
 export const dynamic = "force-dynamic";
 
+// Local-date getters, not toISOString() (UTC) — see CalendarRangePicker.tsx
+// for why mixing the two silently breaks date-range math in IST.
 function toISODate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 function addDays(dateStr: string, n: number) {
   const d = new Date(`${dateStr}T00:00:00`);
