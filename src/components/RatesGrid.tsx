@@ -253,10 +253,10 @@ export function RatesGrid({
   const [calTo, setCalTo] = useState(todayISO());
   const [calRate, setCalRate] = useState("");
   const [calAvailability, setCalAvailability] = useState("");
-  // Closed (false) once a range has been successfully applied — shows a
-  // collapsed "Applied" summary instead of the picker until the user asks
-  // to change dates again.
-  const [calendarOpen, setCalendarOpen] = useState(true);
+  // Set right after a successful apply; cleared as soon as the user starts
+  // picking a new range. The picker itself stays open the whole time so the
+  // next range can be chosen immediately.
+  const [calAppliedSummary, setCalAppliedSummary] = useState("");
 
   function toggleCalRoomCategory(id: string) {
     setCalRoomCategoryIds((prev) =>
@@ -291,9 +291,11 @@ export function RatesGrid({
 
     const payload: EntryPayload[] = [];
     const newValues: Record<string, CellValue> = {};
+    const previousValues: Record<string, CellValue> = {};
     calRoomCategoryIds.forEach((roomCategoryId) => {
       dates.forEach((date) => {
         const current = getCell(roomCategoryId, date);
+        previousValues[cellKey(roomCategoryId, date)] = current;
         const merged = { ...current, ...patch };
         newValues[cellKey(roomCategoryId, date)] = merged;
         payload.push({ roomCategoryId, date, ...merged });
@@ -304,12 +306,25 @@ export function RatesGrid({
     // stuck waiting on the network round trip and page refresh.
     setCells((prev) => ({ ...prev, ...newValues }));
 
+    const appliedFrom = calFrom;
+    const appliedTo = calTo;
+
     const ok = await postEntries(payload);
     if (ok) {
-      setMessage(
-        `Applied to ${dates.length} date(s) across ${calRoomCategoryIds.length} room type(s).`
+      setMessage("");
+      setCalAppliedSummary(
+        `${new Date(`${appliedFrom}T00:00:00`).toLocaleDateString()} – ${new Date(
+          `${appliedTo}T00:00:00`
+        ).toLocaleDateString()} · ${dates.length} date(s) × ${calRoomCategoryIds.length} room type(s)`
       );
-      setCalendarOpen(false);
+      // Clear the selection (not the whole form) so the picker is ready for
+      // the next range right away.
+      setCalFrom("");
+      setCalTo("");
+    } else {
+      // The save didn't actually persist — undo the optimistic update so
+      // the grid doesn't show values that were never saved.
+      setCells((prev) => ({ ...prev, ...previousValues }));
     }
   }
 
@@ -464,6 +479,15 @@ export function RatesGrid({
 
       {tab === "calendar" && (
         <div className="mt-4 max-w-2xl space-y-4 rounded-card border border-line bg-white p-5">
+          {calAppliedSummary && (
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">
+                ✓
+              </span>
+              <span className="font-medium text-emerald-800">Applied</span>
+              <span className="text-emerald-700">{calAppliedSummary}</span>
+            </div>
+          )}
           {message && <p className="text-xs text-slate">{message}</p>}
           <div>
             <p className="field-label">Room types</p>
@@ -491,39 +515,18 @@ export function RatesGrid({
 
           <div>
             <p className="field-label">Dates</p>
-            {calendarOpen ? (
-              <div className="rounded-lg border border-line p-3">
-                <CalendarRangePicker
-                  from={calFrom}
-                  to={calTo}
-                  maxDate={addDays(todayISO(), CALENDAR_MAX_DAYS_OUT)}
-                  onChange={(from, to) => {
-                    setCalFrom(from);
-                    setCalTo(to);
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">
-                    ✓
-                  </span>
-                  <span className="font-medium text-emerald-800">
-                    {new Date(`${calFrom}T00:00:00`).toLocaleDateString()} –{" "}
-                    {new Date(`${calTo}T00:00:00`).toLocaleDateString()}
-                  </span>
-                  <span className="text-emerald-700">Applied</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCalendarOpen(true)}
-                  className="text-xs font-medium text-emerald-800 underline underline-offset-2 hover:text-emerald-900"
-                >
-                  Change dates
-                </button>
-              </div>
-            )}
+            <div className="rounded-lg border border-line p-3">
+              <CalendarRangePicker
+                from={calFrom}
+                to={calTo}
+                maxDate={addDays(todayISO(), CALENDAR_MAX_DAYS_OUT)}
+                onChange={(from, to) => {
+                  setCalFrom(from);
+                  setCalTo(to);
+                  setCalAppliedSummary("");
+                }}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
