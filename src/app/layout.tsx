@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import { getCurrentUser } from "@/lib/session";
 
 const display = Plus_Jakarta_Sans({
@@ -44,22 +45,7 @@ export default async function RootLayout({
           }
         />
         <main className="min-h-[calc(100dvh-4rem)]">{children}</main>
-        <footer className="border-t border-line">
-          <div className="container-page flex flex-col gap-3 py-8 text-sm text-slate sm:flex-row sm:items-center sm:justify-between">
-            <span className="font-display text-base font-bold text-ink">Travel Grid India</span>
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-              <a
-                href="mailto:support@travelgridindia.com"
-                className="transition hover:text-ink"
-              >
-                support@travelgridindia.com
-              </a>
-              <a href="tel:+918638163192" className="transition hover:text-ink">
-                +91 86381 63192
-              </a>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </body>
     </html>
   );

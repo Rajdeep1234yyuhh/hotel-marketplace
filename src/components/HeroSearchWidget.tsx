@@ -28,72 +28,74 @@ export function HeroSearchWidget() {
           Packages
         </TabButton>
       </div>
-      <form onSubmit={submit} className="mt-4 space-y-3">
-        <div>
-          <label htmlFor="hero-where" className="field-label">
-            Where
-          </label>
-          <input
-            id="hero-where"
-            value={where}
-            onChange={(e) => setWhere(e.target.value)}
-            placeholder={
-              tab === "stays"
-                ? "Search destinations, hotels or homestays"
-                : "Search destinations or tour packages"
-            }
-            className="field-input"
-          />
-        </div>
-        {tab === "stays" && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div>
-              <label htmlFor="hero-checkin" className="field-label">
-                Check-in
-              </label>
-              <input
-                id="hero-checkin"
-                type="date"
-                value={checkIn}
-                onChange={(e) => setCheckIn(e.target.value)}
-                className="field-input"
-              />
-            </div>
-            <div>
-              <label htmlFor="hero-checkout" className="field-label">
-                Check-out
-              </label>
-              <input
-                id="hero-checkout"
-                type="date"
-                min={checkIn || undefined}
-                value={checkOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-                className="field-input"
-              />
-            </div>
-            <div>
-              <label htmlFor="hero-guests" className="field-label">
-                Guests &amp; Rooms
-              </label>
-              <select
-                id="hero-guests"
-                value={guests}
-                onChange={(e) => setGuests(e.target.value)}
-                className="field-input"
-              >
-                <option value="1">1 Guest · 1 Room</option>
-                <option value="2">2 Guests · 1 Room</option>
-                <option value="3">3 Guests · 1 Room</option>
-                <option value="4">4 Guests · 2 Rooms</option>
-                <option value="6">6 Guests · 2 Rooms</option>
-              </select>
-            </div>
+      <form onSubmit={submit} className="mt-4">
+        <div className={`grid grid-cols-1 gap-3 ${tab === "stays" ? "sm:grid-cols-4" : ""}`}>
+          <div>
+            <label htmlFor="hero-where" className="field-label">
+              Where
+            </label>
+            <input
+              id="hero-where"
+              value={where}
+              onChange={(e) => setWhere(e.target.value)}
+              placeholder={
+                tab === "stays"
+                  ? "Search destinations, hotels or homestays"
+                  : "Search destinations or tour packages"
+              }
+              className="field-input"
+            />
           </div>
-        )}
+          {tab === "stays" && (
+            <>
+              <div>
+                <label htmlFor="hero-checkin" className="field-label">
+                  Check-in
+                </label>
+                <input
+                  id="hero-checkin"
+                  type="date"
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                  className="field-input"
+                />
+              </div>
+              <div>
+                <label htmlFor="hero-checkout" className="field-label">
+                  Check-out
+                </label>
+                <input
+                  id="hero-checkout"
+                  type="date"
+                  min={checkIn || undefined}
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                  className="field-input"
+                />
+              </div>
+              <div>
+                <label htmlFor="hero-guests" className="field-label">
+                  Guests &amp; Rooms
+                </label>
+                <select
+                  id="hero-guests"
+                  value={guests}
+                  onChange={(e) => setGuests(e.target.value)}
+                  className="field-input"
+                >
+                  <option value="1">1 Guest · 1 Room</option>
+                  <option value="2">2 Guests · 1 Room</option>
+                  <option value="3">3 Guests · 1 Room</option>
+                  <option value="4">4 Guests · 2 Rooms</option>
+                  <option value="6">6 Guests · 2 Rooms</option>
+                </select>
+              </div>
+            </>
+          )}
+        </div>
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-deep"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-deep"
         >
           <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
             <circle cx="9" cy="9" r="6" />

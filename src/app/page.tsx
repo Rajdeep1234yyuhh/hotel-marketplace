@@ -4,10 +4,9 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { listHotels, listTourPackages, roomCategoriesForHotel } from "@/lib/db";
 import { HeroSearchWidget } from "@/components/HeroSearchWidget";
-import { DestinationCard } from "@/components/DestinationCard";
 import { HotelCard } from "@/components/HotelCard";
 import { TourPackageCard } from "@/components/TourPackageCard";
-import { EnterForm } from "@/components/EnterForm";
+import { HostPartnerCard } from "@/components/HostPartnerCard";
 
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1600&q=80";
@@ -15,6 +14,7 @@ const HERO_IMAGE =
 const TRUST_POINTS = [
   {
     label: "Best Price Guarantee",
+    sub: "Get the best deals",
     icon: (
       <path
         strokeLinecap="round"
@@ -25,6 +25,7 @@ const TRUST_POINTS = [
   },
   {
     label: "Free Cancellation",
+    sub: "Flexible & easy",
     icon: (
       <>
         <rect x="3.5" y="4.5" width="17" height="16" rx="2" strokeLinecap="round" />
@@ -34,18 +35,18 @@ const TRUST_POINTS = [
   },
   {
     label: "24/7 Customer Support",
+    sub: "We're here for you",
     icon: (
-      <>
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M4 12a8 8 0 0116 0v5a2 2 0 01-2 2h-1v-6h3M4 17v-5h3v6H5a1 1 0 01-1-1z"
-        />
-      </>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4 12a8 8 0 0116 0v5a2 2 0 01-2 2h-1v-6h3M4 17v-5h3v6H5a1 1 0 01-1-1z"
+      />
     ),
   },
   {
     label: "Trusted & Verified Stays",
+    sub: "Safe and reliable",
     icon: (
       <>
         <path
@@ -80,31 +81,13 @@ export default async function HomePage() {
     })
   );
 
-  const cityCount = new Set(hotels.map((h) => h.city)).size;
-
-  const destinations = Object.values(
-    hotels.reduce<Record<string, { city: string; country: string; coverImage: string; listingCount: number }>>(
-      (acc, h) => {
-        const key = h.city;
-        if (!acc[key]) {
-          acc[key] = { city: h.city, country: h.country, coverImage: h.coverImage, listingCount: 0 };
-        }
-        acc[key].listingCount += 1;
-        return acc;
-      },
-      {}
-    )
-  )
-    .sort((a, b) => b.listingCount - a.listingCount)
-    .slice(0, 6);
-
-  const popularStays = hotels.slice(0, 6);
+  const popularStays = hotels.slice(0, 4);
   const featuredPackages = publishedPackages.slice(0, 4);
 
   return (
     <div>
       {/* Hero */}
-      <section className="relative flex min-h-[560px] items-center overflow-hidden sm:min-h-[620px]">
+      <section className="relative flex min-h-[520px] items-center overflow-hidden sm:min-h-[560px]">
         <Image
           src={HERO_IMAGE}
           alt="Hills of Northeast India"
@@ -113,113 +96,32 @@ export default async function HomePage() {
           sizes="100vw"
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/40 to-ink/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/35 to-ink/10" />
 
         <div className="container-page relative w-full py-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
-            Your gateway to
-          </p>
-          <h1 className="mt-3 max-w-2xl font-display text-5xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-6xl">
-            Northeast India
+          <h1 className="max-w-2xl font-display text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl">
+            Explore Northeast India
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
             Discover and book the best hotels, homestays, resorts and unique stays across
             Northeast India.
           </p>
 
-          <div className="mt-8 max-w-2xl">
+          <div className="mt-8 max-w-3xl">
             <HeroSearchWidget />
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3">
-            {TRUST_POINTS.map((t) => (
-              <div key={t.label} className="flex items-center gap-2 text-sm text-white/90">
-                <svg
-                  className="h-5 w-5 shrink-0 text-sky-300"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.8}
-                >
-                  {t.icon}
-                </svg>
-                {t.label}
-              </div>
-            ))}
           </div>
         </div>
       </section>
 
       <div className="container-page">
-        {/* Destinations */}
-        {destinations.length > 0 && (
-          <section className="border-b border-line py-10">
-            <div className="flex items-end justify-between">
-              <div>
-                <h2 className="font-display text-2xl font-bold text-ink">
-                  Explore Northeast India
-                </h2>
-                <p className="mt-1 text-sm text-slate">Popular destinations</p>
-              </div>
-              <Link
-                href="/browse"
-                className="hidden text-sm font-medium text-accent-deep hover:underline sm:inline-block"
-              >
-                View all destinations →
-              </Link>
-            </div>
-            <div className="mt-5 flex gap-4 overflow-x-auto pb-2">
-              {destinations.map((d) => (
-                <DestinationCard
-                  key={d.city}
-                  city={d.city}
-                  country={d.country}
-                  coverImage={d.coverImage}
-                  listingCount={d.listingCount}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Popular stays */}
-        {popularStays.length > 0 && (
-          <section className="border-b border-line py-10">
-            <div className="flex items-end justify-between">
-              <div>
-                <h2 className="font-display text-2xl font-bold text-ink">Popular stays</h2>
-                <p className="mt-1 text-sm text-slate">Handpicked stays for your next trip</p>
-              </div>
-              <Link
-                href="/browse"
-                className="hidden text-sm font-medium text-accent-deep hover:underline sm:inline-block"
-              >
-                View all stays →
-              </Link>
-            </div>
-            <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {popularStays.map((hotel) => (
-                <HotelCard key={hotel.id} hotel={hotel} href={`/hotels/${hotel.id}`} />
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Tour packages */}
         {featuredPackages.length > 0 && (
           <section className="border-b border-line py-10">
             <div className="flex items-end justify-between">
-              <div>
-                <h2 className="font-display text-2xl font-bold text-ink">
-                  Explore tour packages
-                </h2>
-                <p className="mt-1 text-sm text-slate">
-                  Curated packages to experience the best of the Northeast
-                </p>
-              </div>
+              <h2 className="font-display text-2xl font-bold text-ink">Explore tour packages</h2>
               <Link
                 href="/packages"
-                className="hidden text-sm font-medium text-accent-deep hover:underline sm:inline-block"
+                className="text-sm font-medium text-accent-deep hover:underline"
               >
                 View all packages →
               </Link>
@@ -232,39 +134,55 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* Stats + host CTA */}
-        <section id="get-started" className="grid items-center gap-10 py-16 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <p className="eyebrow">Why book with Travel Grid India?</p>
-            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-              List your property with us
-            </h2>
-            <p className="mt-3 max-w-md text-slate">
-              Free listing, low commission, and more direct bookings — sign in with Google
-              and your host dashboard is ready in minutes.
-            </p>
-            <dl className="mt-8 flex gap-10">
-              <div>
-                <dt className="text-sm text-slate">Live listings</dt>
-                <dd className="font-display text-3xl font-bold text-ink">{hotels.length}</dd>
-              </div>
-              <div>
-                <dt className="text-sm text-slate">Destinations</dt>
-                <dd className="font-display text-3xl font-bold text-ink">{cityCount}</dd>
-              </div>
-              <div>
-                <dt className="text-sm text-slate">Setup time</dt>
-                <dd className="font-display text-3xl font-bold text-ink">2 min</dd>
-              </div>
-            </dl>
-            <p className="mt-8 text-sm text-slate">
-              Just browsing?{" "}
-              <Link href="/browse" className="font-semibold text-ink underline underline-offset-4">
-                See the stays without signing in →
+        {/* Popular stays */}
+        {popularStays.length > 0 && (
+          <section className="border-b border-line py-10">
+            <div className="flex items-end justify-between">
+              <h2 className="font-display text-2xl font-bold text-ink">Popular stays</h2>
+              <Link href="/browse" className="text-sm font-medium text-accent-deep hover:underline">
+                View all stays →
               </Link>
-            </p>
-          </div>
-          <EnterForm />
+            </div>
+            <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {popularStays.map((hotel) => (
+                <HotelCard key={hotel.id} hotel={hotel} href={`/hotels/${hotel.id}`} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Host CTA */}
+        <section id="get-started" className="py-10">
+          <HostPartnerCard />
+          <p className="mt-4 text-center text-sm text-slate">
+            Just browsing?{" "}
+            <Link href="/browse" className="font-semibold text-ink underline underline-offset-4">
+              See the stays without signing in →
+            </Link>
+          </p>
+        </section>
+
+        {/* Trust badges */}
+        <section className="grid grid-cols-2 gap-6 border-t border-line py-10 sm:grid-cols-4">
+          {TRUST_POINTS.map((t) => (
+            <div key={t.label} className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/10">
+                <svg
+                  className="h-4.5 w-4.5 text-accent-deep"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                >
+                  {t.icon}
+                </svg>
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-ink">{t.label}</p>
+                <p className="text-xs text-slate">{t.sub}</p>
+              </div>
+            </div>
+          ))}
         </section>
       </div>
     </div>
