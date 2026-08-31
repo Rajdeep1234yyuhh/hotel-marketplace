@@ -3,6 +3,10 @@ import Image from "next/image";
 
 type FooterLink = { label: string; href?: string };
 
+function comingSoonHref(label: string) {
+  return `/coming-soon?feature=${encodeURIComponent(label)}`;
+}
+
 const COMPANY_LINKS: FooterLink[] = [
   { label: "About Us" },
   { label: "Contact Us" },
@@ -31,17 +35,13 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
     <div>
       <p className="text-sm font-semibold text-white">{title}</p>
       <ul className="mt-3 space-y-2 text-sm text-white/60">
-        {links.map((l) =>
-          l.href ? (
-            <li key={l.label}>
-              <Link href={l.href} className="transition hover:text-white">
-                {l.label}
-              </Link>
-            </li>
-          ) : (
-            <li key={l.label}>{l.label}</li>
-          )
-        )}
+        {links.map((l) => (
+          <li key={l.label}>
+            <Link href={l.href ?? comingSoonHref(l.label)} className="transition hover:text-white">
+              {l.label}
+            </Link>
+          </li>
+        ))}
       </ul>
     </div>
   );
