@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export function HeroSearchWidget() {
@@ -9,7 +9,8 @@ export function HeroSearchWidget() {
   const [where, setWhere] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
-  const [guests, setGuests] = useState("2");
+  const [guests, setGuests] = useState(2);
+  const [rooms, setRooms] = useState(1);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,23 +74,12 @@ export function HeroSearchWidget() {
                   className="field-input"
                 />
               </div>
-              <div>
-                <label htmlFor="hero-guests" className="field-label">
-                  Guests &amp; Rooms
-                </label>
-                <select
-                  id="hero-guests"
-                  value={guests}
-                  onChange={(e) => setGuests(e.target.value)}
-                  className="field-input"
-                >
-                  <option value="1">1 Guest · 1 Room</option>
-                  <option value="2">2 Guests · 1 Room</option>
-                  <option value="3">3 Guests · 1 Room</option>
-                  <option value="4">4 Guests · 2 Rooms</option>
-                  <option value="6">6 Guests · 2 Rooms</option>
-                </select>
-              </div>
+              <GuestsRoomsPicker
+                guests={guests}
+                rooms={rooms}
+                onGuestsChange={setGuests}
+                onRoomsChange={setRooms}
+              />
             </>
           )}
         </div>
@@ -104,6 +94,104 @@ export function HeroSearchWidget() {
           Search {tab === "stays" ? "stays" : "packages"}
         </button>
       </form>
+    </div>
+  );
+}
+
+function GuestsRoomsPicker({
+  guests,
+  rooms,
+  onGuestsChange,
+  onRoomsChange,
+}: {
+  guests: number;
+  rooms: number;
+  onGuestsChange: (n: number) => void;
+  onRoomsChange: (n: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label htmlFor="hero-guests-rooms" className="field-label">
+        Guests &amp; Rooms
+      </label>
+      <button
+        id="hero-guests-rooms"
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="field-input flex items-center justify-between text-left"
+      >
+        <span>
+          {guests} {guests === 1 ? "Guest" : "Guests"} · {rooms} {rooms === 1 ? "Room" : "Rooms"}
+        </span>
+        <svg
+          className={`h-4 w-4 shrink-0 text-slate transition-transform ${open ? "rotate-180" : ""}`}
+          viewBox="0 0 20 20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.8}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 7.5l5 5 5-5" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-2 w-full min-w-[220px] rounded-lg border border-line bg-white p-4 shadow-lift">
+          <Stepper label="Guests" value={guests} min={1} max={20} onChange={onGuestsChange} />
+          <Stepper label="Rooms" value={rooms} min={1} max={10} onChange={onRoomsChange} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stepper({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-sm text-ink">{label}</span>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - 1))}
+          disabled={value <= min}
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-line text-sm font-medium text-ink transition hover:border-ink/40 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          −
+        </button>
+        <span className="w-4 text-center text-sm font-medium text-ink">{value}</span>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, value + 1))}
+          disabled={value >= max}
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-line text-sm font-medium text-ink transition hover:border-ink/40 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }

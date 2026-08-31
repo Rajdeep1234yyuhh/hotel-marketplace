@@ -2,10 +2,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
-import { listTourPackages } from "@/lib/db";
+import { listHotels, listTourPackages, roomCategoriesForHotel } from "@/lib/db";
 import { HeroSearchWidget } from "@/components/HeroSearchWidget";
+import { HotelCard } from "@/components/HotelCard";
 import { TourPackageCard } from "@/components/TourPackageCard";
 import { HostPartnerCard } from "@/components/HostPartnerCard";
+import { isFeaturedHotel } from "@/lib/featured-hotels";
 
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1600&q=80";
@@ -69,7 +71,18 @@ export default async function HomePage() {
     );
   }
 
-  const publishedPackages = await listTourPackages({ published: true });
+  const [publishedHotels, publishedPackages] = await Promise.all([
+    listHotels({ published: true }),
+    listTourPackages({ published: true }),
+  ]);
+  const featuredHotelRecords = publishedHotels.filter((h) => isFeaturedHotel(h.id));
+  const featuredHotels = await Promise.all(
+    featuredHotelRecords.map(async (h) => {
+      const categories = await roomCategoriesForHotel(h.id);
+      const prices = categories.map((c) => c.pricePerNight);
+      return { ...h, startingPrice: prices.length > 0 ? Math.min(...prices) : 0 };
+    })
+  );
   const featuredPackages = publishedPackages.slice(0, 4);
 
   return (
@@ -123,17 +136,21 @@ export default async function HomePage() {
         )}
 
         {/* Popular stays */}
-        <section className="border-b border-line py-10">
-          <div className="flex items-end justify-between">
-            <h2 className="font-display text-2xl font-bold text-ink">Popular stays</h2>
-          </div>
-          <div className="mt-5 rounded-card border border-dashed border-line bg-paper/60 px-6 py-10 text-center">
-            <p className="font-display text-lg font-bold text-ink">Coming soon</p>
-            <p className="mt-1 text-sm text-slate">
-              Guest browsing and booking is paused while we get ready for launch.
-            </p>
-          </div>
-        </section>
+        {featuredHotels.length > 0 && (
+          <section className="border-b border-line py-10">
+            <div className="flex items-end justify-between">
+              <h2 className="font-display text-2xl font-bold text-ink">Popular stays</h2>
+              <Link href="/browse" className="text-sm font-medium text-accent-deep hover:underline">
+                View all stays →
+              </Link>
+            </div>
+            <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {featuredHotels.map((hotel) => (
+                <HotelCard key={hotel.id} hotel={hotel} href={`/hotels/${hotel.id}`} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Host CTA */}
         <section id="get-started" className="py-10">
