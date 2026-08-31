@@ -68,8 +68,9 @@ export function Footer() {
             Your trusted travel partner for exploring Northeast India. Explore. Stay. Travel.
             Change.
           </p>
-          <div className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs text-white/70">
-            Follow us on Instagram
+          <div className="mt-4 inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-white/15 px-3 py-2 text-xs text-white/70">
+            <InstagramIcon />
+            Follow us
             <span className="font-medium text-white">@travelgridindia07</span>
           </div>
         </div>
@@ -120,6 +121,16 @@ function iconProps() {
     stroke: "currentColor",
     strokeWidth: 1.8,
   };
+}
+
+function InstagramIcon() {
+  return (
+    <svg {...iconProps()}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="5" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="4.2" />
+      <circle cx="17" cy="7" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
 }
 
 function PhoneIcon() {
