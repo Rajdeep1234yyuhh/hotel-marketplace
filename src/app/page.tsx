@@ -140,7 +140,10 @@ export default async function HomePage() {
           <section className="border-b border-line py-10">
             <div className="flex items-end justify-between">
               <h2 className="font-display text-2xl font-bold text-ink">Popular stays</h2>
-              <Link href="/browse" className="text-sm font-medium text-accent-deep hover:underline">
+              <Link
+                href="/coming-soon?feature=All%20stays"
+                className="text-sm font-medium text-accent-deep hover:underline"
+              >
                 View all stays →
               </Link>
             </div>
